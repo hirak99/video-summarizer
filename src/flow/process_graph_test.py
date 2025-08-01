@@ -1,0 +1,253 @@
+import json
+import time
+import unittest
+
+from . import process_graph
+from . import process_node
+
+from typing import override
+
+# pyright: reportPrivateUsage=false
+
+
+# Example node for testing.
+class SumInt(process_node.ProcessNode):
+    def __init__(self) -> None:
+        self.process_call_count = 0
+
+    @override
+    def process(self, a: int, b: int) -> int:
+        self.process_call_count += 1
+        return a + b
+
+
+class Inc(process_node.ProcessNode):
+    def __init__(self, how_much: int) -> None:
+        self._how_much_inc = how_much
+
+    @override
+    def process(self, a: int) -> int:
+        return a + self._how_much_inc
+
+
+class TestProcessGraph(unittest.TestCase):
+    def test_simple_graph_execution(self):
+        graph = process_graph.ProcessGraph()
+        node1 = graph.add_node(1, SumInt, {"a": 1, "b": 2})
+        node2 = graph.add_node(2, SumInt, {"a": node1, "b": node1}, version=2)
+
+        # Run node2 and check its result.
+        result_node2 = graph.run_upto([node2])
+        self.assertEqual(result_node2, 6)  # (1+2) + (1+2) = 3 + 3 = 6
+
+        # Check the results_dict.
+        expected_results_dict = {
+            1: {"name": "SumInt", "output": 3, "version": 0},
+            2: {"name": "SumInt", "output": 6, "version": 2},
+        }
+        result = graph.results_dict.copy()
+        # Don't care about things like output_ts and time.
+        for result_item in result.values():
+            del result_item["meta"]
+        self.assertEqual(result, expected_results_dict)
+
+    def test_compute_only_once(self):
+        graph = process_graph.ProcessGraph()
+        node1 = graph.add_node(1, SumInt, {"a": 1, "b": 2})
+        node2 = graph.add_node(
+            2, SumInt, {"a": node1, "b": 3}, invalidate_before=time.time() + 60 * 600
+        )
+        sum_node1: SumInt = node1._node  # pyright: ignore
+        sum_node2: SumInt = node2._node  # pyright: ignore
+
+        self.assertEqual(graph.run_upto([node2]), 6)
+        self.assertEqual(sum_node1.process_call_count, 1)
+        self.assertEqual(sum_node2.process_call_count, 1)
+
+        self.assertEqual(graph.run_upto([node2]), 6)
+        self.assertEqual(sum_node1.process_call_count, 1)
+        self.assertEqual(sum_node2.process_call_count, 2)
+
+        graph.reset()
+        self.assertEqual(graph.run_upto([node2]), 6)
+        self.assertEqual(sum_node1.process_call_count, 2)
+        self.assertEqual(sum_node2.process_call_count, 3)
+
+        graph.release_resources()
+        self.assertEqual(graph.run_upto([node2]), 6)
+        self.assertEqual(sum_node1.process_call_count, 2)
+        self.assertEqual(sum_node2.process_call_count, 3)
+
+    def test_dependency_updated(self):
+        graph = process_graph.ProcessGraph()
+        node1 = graph.add_node(1, SumInt, {"a": 1, "b": 2})
+        node2 = graph.add_node(2, SumInt, {"a": node1, "b": 3})
+        sum_node1: SumInt = node1._node  # pyright: ignore
+        sum_node2: SumInt = node2._node  # pyright: ignore
+
+        self.assertEqual(graph.run_upto([node2]), 6)
+        self.assertEqual(sum_node1.process_call_count, 1)
+        self.assertEqual(sum_node2.process_call_count, 1)
+
+        # Normally, no recomputation is done.
+        self.assertEqual(graph.run_upto([node2]), 6)
+        self.assertEqual(sum_node1.process_call_count, 1)
+        self.assertEqual(sum_node2.process_call_count, 1)
+
+        # But if a dependency is updated, update the node.
+        assert node2._result_timestamp is not None
+        node1._result_timestamp = node2._result_timestamp + 1
+        self.assertEqual(graph.run_upto([node2]), 6)
+        self.assertEqual(sum_node1.process_call_count, 1)
+        self.assertEqual(sum_node2.process_call_count, 2)
+
+    def test_change_inputs_and_rerun(self):
+        graph = process_graph.ProcessGraph()
+        node = graph.add_node(1, SumInt, {"a": 1, "b": 2})
+        self.assertEqual(graph.run_upto([node]), 3)
+
+    def test_duplicate_node_id(self):
+        graph = process_graph.ProcessGraph()
+        _ = graph.add_node(1, SumInt, {"a": 1, "b": [2]})
+        with self.assertRaises(ValueError):
+            _ = graph.add_node(1, SumInt, {"a": 1, "b": [2]})
+
+    def test_type_validation(self):
+        graph = process_graph.ProcessGraph()
+        node = graph.add_node(1, SumInt, {"a": 1, "b": [2]})
+        with self.assertRaises(TypeError):
+            graph.run_upto([node])
+
+        node = graph.add_node(2, SumInt, {"a": [1], "b": 2})
+        with self.assertRaises(TypeError):
+            graph.run_upto([node])
+
+    def test_constant_node(self):
+        graph = process_graph.ProcessGraph()
+        node1 = graph.add_node(1, process_node.constant(), {"value": "hello"})
+        self.assertEqual(graph.run_upto([node1]), "hello")
+
+        graph.reset()
+        node1.set("value", "world")
+        self.assertEqual(graph.run_upto([node1]), "world")
+
+    def test_function_node(self):
+        graph = process_graph.ProcessGraph()
+
+        # Add a named function node.
+        def sum_func(a: int, b: int) -> int:
+            return a + b
+
+        node1 = graph.add_node(1, process_node.function(sum_func), {"a": 1, "b": 2})
+
+        # Add a lambda function node.
+        node2 = graph.add_node(
+            2, process_node.function(lambda a, b: a + b), {"a": node1, "b": 3}
+        )
+
+        # Test.
+        self.assertEqual(graph.run_upto([node2]), 6)
+
+        # Check that we get expected names for the nodes.
+        self.assertEqual(node1.name, "sum_func")
+        self.assertEqual(node2.name, "<lambda>")
+
+    def test_persistence_partial(self):
+        graph = process_graph.ProcessGraph()
+        const = graph.add_node(1, process_node.constant(), {"value": 2})
+        graph.run_upto([const])
+
+        results_dict = json.loads(json.dumps(graph.results_dict))
+
+        graph = process_graph.ProcessGraph()
+        const = graph.add_node(1, process_node.constant(), {"value": 2})
+        func = graph.add_node(2, process_node.function(lambda n: n + 1), {"n": const})
+        graph._load_results_dict(results_dict)
+        self.assertEqual(graph.run_upto([func]), 3)
+
+    def test_persistence(self):
+        def make_graph():
+            graph = process_graph.ProcessGraph()
+            node1 = graph.add_node(2, SumInt, {"a": 1, "b": 2})
+            node2 = graph.add_node(3, SumInt, {"a": node1, "b": node1})
+            return graph, node2
+
+        graph, final_node = make_graph()
+        result = graph.run_upto([final_node])
+        results_dict = graph.results_dict
+
+        # Results dict should survive jsonification.
+        results_dict_reloaded = json.loads(json.dumps(results_dict))
+
+        # Remake the graph, load, and test.
+        graph, final_node = make_graph()
+        graph._load_results_dict(results_dict_reloaded)
+        self.assertEqual(results_dict, graph.results_dict)
+        self.assertEqual(result, graph.run_upto([final_node]))
+        # There should be no new computation when we called graph.run_upto([final_node]).
+        self.assertEqual(final_node._node.process_call_count, 0)  # type: ignore
+
+    def test_graph_structure(self):
+        graph = process_graph.ProcessGraph()
+        node1 = graph.add_node(1, SumInt, {"a": 1, "b": 2})
+        node2 = graph.add_node(2, SumInt, {"a": node1, "b": node1})
+        node3 = graph.add_node(3, SumInt, {"a": node1, "b": node2})
+        self.assertEqual(graph._dependencies, {1: set(), 2: {1}, 3: {1, 2}})
+
+        self.assertEqual(graph.topological_sort([node3]), [node1, node2, node3])
+        self.assertEqual(graph.topological_sort([node2]), [node1, node2])
+        self.assertEqual(graph.topological_sort([node2, node3]), [node1, node2, node3])
+
+    def test_node_with_init_args(self):
+        graph = process_graph.ProcessGraph()
+        node1 = graph.add_node(
+            1, Inc, constructor_kwargs=dict(how_much=20), inputs={"a": 5}
+        )
+
+        self.assertEqual(graph.run_upto([node1]), 25)
+
+    def test_manual_override(self):
+        graph = process_graph.ProcessGraph()
+        node1 = graph.add_node(1, SumInt, {"a": 1, "b": 2})
+        node2 = graph.add_node(2, SumInt, {"a": node1, "b": 3})
+        node3 = graph.add_node(3, SumInt, {"a": node2, "b": 4})
+        self.assertEqual(graph.run_upto([node3]), 10)
+
+        def override_fn(original_result, **kwargs):
+            self.assertEqual(original_result, 6)
+            self.assertEqual(kwargs, {"a": 3, "b": 3})
+            return 7
+
+        node2.manual_override_func = override_fn
+        node3.reset()
+        self.assertEqual(graph.run_upto([node3]), 11)
+
+    def test_recompute_new_version(self):
+        graph = process_graph.ProcessGraph()
+        node1 = graph.add_node(1, SumInt, {"a": 1, "b": 2})
+        node2 = graph.add_node(2, SumInt, {"a": node1, "b": node1})
+        sum_node2: SumInt = node2._node  # pyright: ignore
+
+        # Run node2 and check its result.
+        result_node2 = graph.run_upto([node2])
+        self.assertEqual(result_node2, 6)  # (1+2) + (1+2) = 3 + 3 = 6
+        self.assertEqual(sum_node2.process_call_count, 1)
+
+        # Simulate save and reload.
+        node2.from_persist(node2.to_persist())
+        # No recompute if version is same.
+        result_node2 = graph.run_upto([node2])
+        self.assertEqual(result_node2, 6)  # (1+2) + (1+2) = 3 + 3 = 6
+        self.assertEqual(sum_node2.process_call_count, 1)
+
+        # Simulate save and reload.
+        node2.from_persist(node2.to_persist())
+        # Recompute if version changed.
+        node2.version = 1
+        result_node2 = graph.run_upto([node2])
+        self.assertEqual(result_node2, 6)  # (1+2) + (1+2) = 3 + 3 = 6
+        self.assertEqual(sum_node2.process_call_count, 2)
+
+
+if __name__ == "__main__":
+    unittest.main()
