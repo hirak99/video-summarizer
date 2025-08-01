@@ -55,15 +55,11 @@ sudo apt install python3.13 python3.13-venv python3.13-dev
 
 - Create a venv (with Python 3.13 or higher) and install these packages:
 ```sh
+# Python dependencies.
+pip install -r requirements.txt
+
+# Linux dependencies.
 sudo apt install tesseract-ocr
-
-pip install openai-whisper pyannote.audio \
-    whisper-timestamped \
-    moviepy opencv-python \
-    pytesseract easyocr \
-    dotenv pydantic
-
-pip install --upgrade openai
 ```
 - Put all your videos in a path and edit video_processor.py to point to it.
 - Obtain a token from HuggingFace to use public domain models that require authentication.
