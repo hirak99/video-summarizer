@@ -177,6 +177,8 @@ def main(iregex: str | None, limit_files: int, makeviz: bool, dry_run: bool):
             diarize_node,
             role_identify_node,
         ],
+        # As there is little to no errors, we want to fail immediately.
+        fault_tolerant=False,
     )
 
     video_config.repeated_warnings()
