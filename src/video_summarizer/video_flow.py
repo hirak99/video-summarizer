@@ -202,13 +202,13 @@ if __name__ == "__main__":
         help="If set, creates a demo video.",
     )
     parser.add_argument(
-        "--enable-vision",
+        "--disable-vision",
         action="store_true",
-        help="If set, enables vision pipeline. Dev flag, vision may not be ready yet.",
+        help="Disables vision pipeline. Dev flag.",
     )
     args = parser.parse_args()
 
-    video_config.ENABLE_VISION = args.enable_vision
+    video_config.ENABLE_VISION = not args.disable_vision
 
     logging_utils.setup_logging()
     dotenv.load_dotenv()
