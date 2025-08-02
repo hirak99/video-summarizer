@@ -1,14 +1,16 @@
 # Video Summarizer
 
-This repository contains two closely related projects for building a video summarization pipeline.
+## Project Overview
+
+This repository hosts two closely related projects designed to build a scalable video-understanding and summarization pipeline.
 
 1. **[Flow](./src/flow/README.md)**
 
-   A robust ML workflow architecture that provides caching, fault tolerance, versioning, and other essential components for scalable pipeline development.
+   A user-friendly DAG-based workflow manager that offers task resumption, caching, logging, error handling, and persistence, ensuring efficient and fault-tolerant execution of machine learning pipelines.
 
 2. **[Video Summarizer](./src/video_summarizer/README.md)**
 
-   A video understanding and summarization system that automatically generates highlight reels from collections of raw videos.
+   A video understanding and summarization system that can be used to automatically summarize hours of technical video into 5-minute digest with explanations.
 
 Here is the main video processing flow this implements.
 
@@ -39,7 +41,7 @@ flowchart TD;
 
 - **[Video Annotator](https://github.com/hirak99/video-annotator)**
 
-  It is a web-based tool for manual video annotation, used to quickly annotate lattice-aligned rectangular ROIs in the videos. It is hosted separately.
+  It is a web-based tool for manual video annotation, to annotate lattice-aligned rectangular ROIs in the videos. It was primarily made for this project to quickly annotate map the teacher / student areas. It is also used to mark simple regions for adhoc blurring.
 
 ## Setup & Running
 
@@ -47,7 +49,7 @@ flowchart TD;
 
 - Recommended Python version is 3.13.
 
-If your version is lower and you are using Ubuntu, you can use the following commands to install Python 3.13 -
+If your default Python version is lower, and you are using Debian based distro (Ubuntu / Mint etc.), you can use the following commands to install Python 3.13 -
 
 ```sh
 sudo apt install python3.13 python3.13-venv python3.13-dev
@@ -67,16 +69,14 @@ sudo apt install tesseract-ocr
 
 ### Manual Labeling
 
-Manual labels are done using https://github.com/hirak99/video-annotator.
+Manual labels are done using [Video Annotator](https://github.com/hirak99/video-annotator).
 
-See the constants in video_annotations_manager.py to understand where the labels are stored, what should be the user for labeling and what should be the names.
-
-If you are not using manual labels, set the constant there to disable attempting to look up the labels.
+See the constants in [manual_labels_manager.py](./src/video_summarizer/utils/manual_labels_manager.py) for conventions used (e.g. where the labels are stored, etc.).
 
 ### Local LLM Inference
 For running local LLM models, following additional steps are required.
 
-Skip if you don't need local infernce, e.g if you only use cloud-based LLMs.
+Skip if you don't need local infernce, and if you plan to use cloud-based LLMs.
 
 ```sh
 sudo apt install cmake libcurl4-openssl-dev
@@ -104,24 +104,27 @@ ensure that you have`AUTO_START_SERVER = True` in llm.py.
 ```sh
 export FFMPEG_BINARY=/usr/bin/ffmpeg
 
-# Note: The following may also be put in a .env file instead.
-export HUGGING_FACE_AUTH="your huggingface token"  # Note: Remember to also accept pyannote terms of service in HuggingFace.
+# Note: The keys below may also be put in a .env file instead.
+
+# Note: Remember to also accept pyannote terms of service in HuggingFace.
+export HUGGING_FACE_AUTH="your huggingface token"
 export OPEN_API_KEY="your OpenAI key"
 
 # Edit consts in video_config.py.
 # - Set input/output paths. If you modify them, also change the video_process.sh script.
 # - Make sure TESTING_MODE is False.
 
-# Edit llm.py.
-# - Set AUTO_START_SERVER to True, assuming you want the framework to manage
-#   starting and ending local LLM servers as needed.
+# Set source videos to summarize in domain_config.py.
+
+# If using local LLMs, edit llm.py.
+# - Set AUTO_START_SERVER to True. This will allow the framework to manage the local GPU
+#   and start the local LLM services as needed.
 
 # Then you can run a binary like below.
 
 # Run each video file through video-understanding flow.
-# The script is equivalent to invoking the python module, but also backs up past results.
-./scripts/video_process.sh
+./scripts/video_flow.sh
 
 # Run the student highlight compilation flow.
-python -m src.bin.student_flow
+./scripts/student_flow.sh
 ```

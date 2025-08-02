@@ -53,7 +53,7 @@ Once all the videos are processed, the following is run to summarize across vide
 flowchart TD
     X[Original Videos] --> B
     Y[Student Evaluations] --> A
-    Z[Object Detections] -- blur --> B
+    Z[PII Detections] -- blur --> B
     A[Hiring Highlight Curation] --> B[Compiled Movie]
     A --> C[Auto Eval Templates]
     X@{ shape: procs}
