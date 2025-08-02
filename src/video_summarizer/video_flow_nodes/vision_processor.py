@@ -11,6 +11,7 @@ import hashlib
 import json
 import logging
 import os
+from typing import Any, override
 
 import moviepy  # type: ignore
 from PIL import Image
@@ -25,15 +26,17 @@ from ..llm_service import llm_utils
 from ..llm_service import vision
 from ..utils import interval_scanner
 from ..utils import manual_labels_manager
+from ..utils import misc_utils
 from ..utils import templater
-
-from typing import Any, override
 
 # Number of seconds to probe the video for.
 _RESOLUTION_S = 5.0
 
 # How many seconds of caption to use.
 _CAPTION_SECS = 30.0
+
+# Controls logging frequency of the LLM calls.
+_LOG_EVERY = 1
 
 
 class SceneDescriptionT(pydantic.BaseModel):
@@ -137,6 +140,9 @@ class _VisionProcessor:
         movie_path: str,
         out_file_stem: str,
     ):
+        # Used to name files generated.
+        self._timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
         self._vision = vision_model
         self._source_movie = movie_path
 
@@ -191,8 +197,7 @@ class _VisionProcessor:
 
         # Since this will be a costly operation, preserve the previous outputs.
         # Create a new file every time an output is ready.
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        outfname = f"{self._out_file_stem}.scene_understanding_{timestamp}.json"
+        outfname = f"{self._out_file_stem}.scene_understanding_{self._timestamp}.json"
         if os.path.exists(outfname):
             os.remove(outfname)
         os.rename(self._partial_file, outfname)
@@ -230,6 +235,23 @@ class _VisionProcessor:
                 )
                 return
 
+        log_file: str | None = None
+        if len(self._scene_descriptions.chronology) % _LOG_EVERY == 0:
+            call_count = len(self._scene_descriptions.chronology)
+            log_stem = misc_utils.file_stem_to_log_stem(self._out_file_stem)
+            log_stem += (
+                f".scene_understanding_{self._timestamp}_student_#{call_count:05d}"
+            )
+
+            # Save the image.
+            with open(log_stem + ".png", "wb") as file:
+                student_image.save(file)
+            logging.info(f"Saved image to {log_stem}.png")
+
+            # To be saved by the LLM call.
+            log_file = log_stem + ".txt"
+            logging.info("Logging to " + log_file)
+
         def validate_as_list(result: Any) -> SceneDescriptionT | None:
             result["time"] = t
             result["context_hash"] = context_hash
@@ -242,6 +264,7 @@ class _VisionProcessor:
             max_tokens=4096,
             image_b64=image_b64,
             transformers=[llm_utils.parse_as_json, validate_as_list],
+            log_file=log_file,
         )
         self._scene_descriptions.chronology.append(result)
 

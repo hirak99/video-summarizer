@@ -93,7 +93,7 @@ def main(iregex: str | None, limit_files: int, makeviz: bool):
             "role_aware_summary_file": role_based_caption_node,
             "out_file_stem": out_stem_const,
         },
-        version=3,
+        version=4,
     )
     student_evaluate_node = graph.add_node(
         10,

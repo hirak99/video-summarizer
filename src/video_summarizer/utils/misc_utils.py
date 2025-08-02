@@ -1,3 +1,4 @@
+import functools
 import os
 import pathlib
 import re
@@ -26,3 +27,12 @@ def get_output_stem(
         os.path.relpath(os.path.dirname(source_file), old_root),
     )
     return os.path.join(out_path, os.path.splitext(os.path.basename(source_file))[0])
+
+
+@functools.cache
+def file_stem_to_log_stem(file_stem: str) -> str:
+    """Converts /path/to/stem -> /path/to/logs/stem"""
+    log_dir = os.path.join(os.path.dirname(file_stem), "logs")
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    return os.path.join(log_dir, os.path.basename(file_stem))
