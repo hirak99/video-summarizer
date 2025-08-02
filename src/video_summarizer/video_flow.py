@@ -7,6 +7,7 @@ import dotenv
 
 from . import video_config
 from ..domain_specific import domain_config
+from ..flow import internal_graph_node
 from ..flow import process_graph
 from ..flow import process_node
 from .utils import logging_utils
@@ -23,8 +24,8 @@ from .video_flow_nodes import vision_processor
 from .video_flow_nodes import voice_separator
 
 
-def main(iregex: str | None, limit_files: int, makeviz: bool):
-    graph = process_graph.ProcessGraph()
+def main(iregex: str | None, limit_files: int, makeviz: bool, dry_run: bool):
+    graph = process_graph.ProcessGraph(dry_run=dry_run)
 
     # Don't re-use purged node ids.
     # Next Id: 14
@@ -124,7 +125,7 @@ def main(iregex: str | None, limit_files: int, makeviz: bool):
     )
 
     # Final target node(s) for all files.
-    final_nodes: list[process_graph.AddedNode] = [
+    final_nodes: list[internal_graph_node.AddedNode] = [
         student_evaluate_node,
         ocr_detect_node,
     ]
@@ -210,7 +211,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     video_config.ENABLE_VISION = not args.disable_vision
-    process_graph.DRY_RUN = args.dry_run
 
     logging_utils.setup_logging()
     dotenv.load_dotenv()
@@ -218,4 +218,5 @@ if __name__ == "__main__":
         iregex=args.iregex,
         limit_files=args.limit,
         makeviz=args.makeviz,
+        dry_run=args.dry_run,
     )

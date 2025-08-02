@@ -1,224 +1,14 @@
 import dataclasses
-import datetime
-import gc
 import json
 import logging
 import os
 import time
 
 from . import graph_algorithms
+from . import internal_graph_node
 from . import process_node
 
-from typing import Any, Callable, Generic, Protocol, Type, TypeVar
-
-# If True, will not initialize node constructors, will not compute, and will not save.
-DRY_RUN = False
-
-
-# Use this to manually override any node computation results.
-#
-# Notes:
-# - The funciton should take the form -
-#     def override(original_result, **kwargs) -> Any
-#   If you spell out kwargs, pyright will complain. Also you will then need to keep
-#   track of the signature including inputs you don't want to use.
-# - It should return a result even if there is no change due to override.
-# - Changes to overrides are not detected automatically. You need to invalidate_before.
-# - To change files, you should create a new file with the override.
-class _ManualOverrideFuncT(Protocol):
-    def __call__(self, original_result: Any, **kwargs: Any) -> Any: ...
-
-
-@dataclasses.dataclass
-class AddedNode:
-    """Returned by graph.add_node(). Do not instantiate manually."""
-
-    id: int
-    version: int
-    node_class: Type[process_node.ProcessNode]
-    constructor_args: dict[str, Any]
-    inputs: dict[str, "AddedNode | Any"]
-    # Any results before this will be ignored and recomputed.
-    # Tip: Use `date +%s` to get the current time in seconds since epoch.
-    invalidate_before: float
-    on_result: Callable[["AddedNode"], None]
-
-    # Sometimes you will need to override the computed results. You may use this
-    # hook to do that. See doc on the type for usage suggestions.
-    manual_override_func: _ManualOverrideFuncT | None
-
-    # Set to true if any dependant nodes used this, and an override changed the value.
-    _was_overridden_in_dependancy: bool = False
-
-    # Note: lru_cache does not work since this is not hashable.
-    _result: Any = None
-    _result_version: int = 0
-    _result_timestamp: float | None = None
-    _time: float | None = None
-
-    # Lazy init this only if needed.
-    # Prevents node to be created if existing data is loaded.
-    _lazy_node: process_node.ProcessNode | None = None
-
-    def has_result(self) -> bool:
-        return self._result_timestamp is not None
-
-    # Control access of this; because accessing this will initialize the node.
-    @property
-    def _node(self) -> process_node.ProcessNode:
-        if self._lazy_node is None:
-            self._lazy_node = self.node_class(**self.constructor_args)
-        return self._lazy_node
-
-    @property
-    def name(self) -> str:
-        return self.node_class.name()
-
-    def reset(self):
-        self._result = None
-        self._result_timestamp = None
-        self._time = None
-
-    def release_resources(self):
-        """Clears all loaded models."""
-        if self._lazy_node is not None:
-            logging.info(f"Releasing resources for node {self.id}: {self.name}")
-            self._lazy_node.finalize()
-            self._lazy_node = None
-        self.reset()
-        gc.collect()
-
-    def set(self, arg_name: str, value: Any):
-        if arg_name not in self.inputs:
-            raise ValueError(f"Argument was not found in add_node(...): {arg_name}")
-        self.inputs[arg_name] = value
-
-    def to_persist(self) -> dict[str, Any]:
-        result = {
-            "name": self.name,
-            "output": self._result,
-            "meta": {
-                "output_ts": self._result_timestamp,
-                "time": self._time,
-            },
-        }
-        if self._was_overridden_in_dependancy:
-            assert isinstance(result["meta"], dict)
-            result["meta"]["overriden"] = True
-        result["version"] = self._result_version
-        return result
-
-    def from_persist(self, saved_result: dict[str, Any]) -> None:
-        if saved_result["name"] != self.name:
-            logging.warning(
-                f"Node {self.id} has changed from {saved_result['name']!r} to {self.name!r}. "
-                "Attempting to load anyway."
-            )
-        self._result = saved_result["output"]
-        # Note that the saved version is not the .version, it is ._result_version.
-        if "version" in saved_result:
-            self._result_version = saved_result["version"]
-        # TODO: Obsolete, delete this.
-        if "output_ts" in saved_result:
-            self._result_timestamp = saved_result["output_ts"]
-        if "meta" in saved_result:
-            self._result_timestamp = saved_result["meta"]["output_ts"]
-            self._time = saved_result["meta"]["time"]
-            if "overriden" in saved_result["meta"]:
-                self._was_overridden_in_dependancy = saved_result["meta"]["overriden"]
-
-    @property
-    def _overriden_result(self) -> Any:
-        """Returns result with any manual overrides if applicable."""
-        if self.manual_override_func is None:
-            return self._result
-        new_result = self.manual_override_func(self._result, **self._filled_in_inputs)
-        if self._result != new_result:
-            self._was_overridden_in_dependancy = True
-            logging.warning(
-                f"Overriding has changed the output of {self.id} ({self.name})"
-            )
-        else:
-            logging.info(
-                f"Overriding has not changed the output of {self.id} ({self.name})"
-            )
-        return new_result
-
-    @property
-    def _filled_in_inputs(self) -> dict[str, Any]:
-        """Converts any inputs which are nodes to their results."""
-        kwargs = {}
-        for input_name, input_val in self.inputs.items():
-            if isinstance(input_val, AddedNode):
-                # The following line would recurse dependencies.
-                # kwargs[input_name] = input_val.internal_run()
-                # However we manage dependencies in the graph.
-                if not input_val.has_result():
-                    raise ValueError(
-                        f"Dependent node was not run: id={input_val.id} {input_val.name}"
-                    )
-                kwargs[input_name] = input_val._overriden_result
-            else:
-                kwargs[input_name] = input_val
-        try:
-            self._node.validate_args(kwargs)
-        except TypeError as e:
-            raise TypeError(
-                f"Error validating arguments for node {self.id}: {self._node.name()} with {kwargs!r}"
-            ) from e
-        return kwargs
-
-    def _refresh_result(self):
-        kwargs = self._filled_in_inputs
-        start = time.time()
-        if DRY_RUN:
-            self._result = None
-        else:
-            self._result = self._node.process(**kwargs)
-        self._time = time.time() - start
-        self._result_timestamp = datetime.datetime.now().timestamp()
-        self._result_version = self.version
-        self.on_result(self)
-
-    def _needs_update(self) -> bool:
-        if not self.has_result():
-            logging.info(f"Needs update ({self.id}): {self.name} because no result")
-            return True
-        assert self._result_timestamp is not None  # Because self.has_result() is True.
-        if self._result_version != self.version:
-            logging.info(
-                f"Needs update ({self.id}): {self.name} because version {self._result_version} < {self.version}"
-            )
-            return True
-        if self._result_timestamp < self.invalidate_before:
-            logging.info(
-                f"Needs update ({self.id}): {self.name} because timestamp {self._result_timestamp} < {self.invalidate_before}"
-            )
-            return True
-
-        # Update if any of the dependencies had a recent update.
-        for input_name, input_val in self.inputs.items():
-            del input_name  # Unused
-            if isinstance(input_val, AddedNode):
-                if (
-                    input_val._result_timestamp is not None
-                    and input_val._result_timestamp > self._result_timestamp
-                ):
-                    logging.info(
-                        f"Needs update ({self.id}) {self.name} because dependency is newer:"
-                        f" {input_val._result_timestamp} > {self._result_timestamp}"
-                    )
-                    return True
-        return False
-
-    def internal_run(self):
-        if self._needs_update():
-            logging.info(f"Updating node ({self.id}): {self.name}")
-            self._refresh_result()
-        else:
-            logging.info(f"Returning precomputed for {self.id}: {self._result}")
-        return self._result
-
+from typing import Any, Callable, Generic, Type, TypeVar
 
 # Generic type for process_batch arguments.
 _BatchItemT = TypeVar("_BatchItemT")
@@ -226,30 +16,36 @@ _BatchItemT = TypeVar("_BatchItemT")
 
 @dataclasses.dataclass
 class _BatchFailure(Generic[_BatchItemT]):
+    """Information collected on items that fail during batch_process()."""
+
     item_index: int
     item: _BatchItemT
-    failed_node: AddedNode
+    failed_node: internal_graph_node.AddedNode
     exception: Exception
 
 
 @dataclasses.dataclass
 class _BatchStats(Generic[_BatchItemT]):
+    """Returned by process_batch()."""
+
+    # Number of items on which all nodes succeeded.
     completed: int
     # Contains the item_index, item, node, and the exception.
     failures: list[_BatchFailure[_BatchItemT]]
 
 
 class ProcessGraph:
-    def __init__(self):
+    def __init__(self, dry_run: bool = False):
+        self._dry_run = dry_run
         # Nodes with no dependents (used for running a subset of the graph).
-        self._all_nodes: dict[int, AddedNode] = {}
+        self._all_nodes: dict[int, internal_graph_node.AddedNode] = {}
         self._auto_save_path: str | None = None
         # Used only for visualizing graph. NodeInstance handles actual call
         # dependencies.
         self._dependencies: dict[int, set[int]] = {}
 
     def _save_to(self, path: str):
-        if DRY_RUN:
+        if self._dry_run:
             return
         logging.info(f"Saving graph state to {path}")
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -270,7 +66,7 @@ class ProcessGraph:
             pass
         self._auto_save_path = path
 
-    def _on_node_result(self, node: AddedNode):
+    def _on_node_result(self, node: internal_graph_node.AddedNode):
         if self._auto_save_path is not None:
             self._save_to(self._auto_save_path)
 
@@ -278,13 +74,13 @@ class ProcessGraph:
         self,
         id: int,
         node_class: Type[process_node.ProcessNode],
-        inputs: dict[str, AddedNode | Any],
+        inputs: dict[str, internal_graph_node.AddedNode | Any],
         version: int = 0,
         constructor_kwargs: dict[str, Any] | None = None,
         invalidate_before: float = 0,
         force: bool = False,
-        manual_override_func: _ManualOverrideFuncT | None = None,
-    ) -> AddedNode:
+        manual_override_func: internal_graph_node.ManualOverrideFuncT | None = None,
+    ) -> internal_graph_node.AddedNode:
         """Adds a processor node to the graph.
 
         Args:
@@ -308,7 +104,7 @@ class ProcessGraph:
             invalidate_before = time.time() + (100 * 365 * 24 * 60 * 60)
 
         # Create the underlying node and its instance.
-        node_instance = AddedNode(
+        node_instance = internal_graph_node.AddedNode(
             id=id,
             version=version,
             node_class=node_class,
@@ -317,12 +113,13 @@ class ProcessGraph:
             on_result=self._on_node_result,
             invalidate_before=invalidate_before,
             manual_override_func=manual_override_func,
+            dry_run=self._dry_run,
         )
         self._all_nodes[id] = node_instance
         # Update DAG.
         self._dependencies[id] = set()
         for val in inputs.values():
-            if isinstance(val, AddedNode):
+            if isinstance(val, internal_graph_node.AddedNode):
                 self._dependencies[id].add(val.id)
         # Return the instance so that it can be used as inputs to other nodes.
         return node_instance
@@ -361,7 +158,7 @@ class ProcessGraph:
             f"Loaded nodes from disk: {loaded_count} of {len(self._all_nodes)}"
         )
 
-    def run_upto(self, final_nodes: list[AddedNode]) -> Any:
+    def run_upto(self, final_nodes: list[internal_graph_node.AddedNode]) -> Any:
         last_result: Any = None
         for node in self._topological_sort(final_nodes):
             last_result = node.internal_run()
@@ -369,8 +166,8 @@ class ProcessGraph:
 
     def _topological_sort(
         self,
-        final_nodes: list[AddedNode],
-    ) -> list[AddedNode]:
+        final_nodes: list[internal_graph_node.AddedNode],
+    ) -> list[internal_graph_node.AddedNode]:
         """Computes topological sort of all the nodes.
 
         This can be used to run a batch processing with 'depth-first' mode, to
@@ -381,24 +178,24 @@ class ProcessGraph:
             starting_node: The node to be run finally. Only it and its
             dependencies will be sorted.
         """
-        result: list[AddedNode] = []
+        result: list[internal_graph_node.AddedNode] = []
         for node_id in graph_algorithms.topo_sort_subgraph(
             {x.id for x in final_nodes}, self._dependencies
         ):
             result.append(self._all_nodes[node_id])
         return result
 
-    def _run_only(self, node: AddedNode) -> Any:
+    def _run_only(self, node: internal_graph_node.AddedNode) -> Any:
         return node.internal_run()
 
     def process_batch(
         self,
         *,
         batch_items: list[_BatchItemT],
-        final_nodes: list[AddedNode],
+        final_nodes: list[internal_graph_node.AddedNode],
         prep_fn: Callable[[int, _BatchItemT], None],
         post_fn: Callable[[int, _BatchItemT], None] | None = None,
-        release_after_nodes: list[AddedNode] | None = None,
+        release_after_nodes: list[internal_graph_node.AddedNode] | None = None,
         fault_tolerant: bool = True,
     ) -> _BatchStats[_BatchItemT]:
         """Runs the nodes breath-first, for efficient resource managmement.

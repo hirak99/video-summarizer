@@ -4,6 +4,7 @@ import tempfile
 import time
 import unittest
 
+from . import internal_graph_node
 from . import process_graph
 from . import process_node
 
@@ -34,7 +35,7 @@ class Inc(process_node.ProcessNode):
 
 def _decrement_graph(
     num_nodes: int,
-) -> tuple[process_graph.ProcessGraph, list[process_graph.AddedNode]]:
+) -> tuple[process_graph.ProcessGraph, list[internal_graph_node.AddedNode]]:
     class TestNode(process_node.ProcessNode):
         @override
         def process(self, a: int) -> int:
