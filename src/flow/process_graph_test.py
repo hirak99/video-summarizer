@@ -318,7 +318,7 @@ class TestProcessGraph(unittest.TestCase):
 
     def test_batch_process_fail_fast(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            graph, nodes = _decrement_graph(num_nodes=10)
+            graph, nodes = _decrement_graph(num_nodes=5)
 
             def prep_fn(index, item):
                 nodes[0].set("value", item)
@@ -327,7 +327,7 @@ class TestProcessGraph(unittest.TestCase):
             # Values 9 and 5 will cause failure.
             with self.assertRaisesRegex(ValueError, r"Test error"):
                 graph.process_batch(
-                    batch_items=[11, 9, 5, 10],
+                    batch_items=[11, 2, 1, 10],
                     final_nodes=[nodes[-1]],
                     prep_fn=prep_fn,
                     release_resources_after=nodes,
@@ -336,7 +336,7 @@ class TestProcessGraph(unittest.TestCase):
 
     def test_batch_process_fail_fast_no_failures(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            graph, nodes = _decrement_graph(num_nodes=10)
+            graph, nodes = _decrement_graph(num_nodes=5)
 
             def prep_fn(index, item):
                 nodes[0].set("value", item)
