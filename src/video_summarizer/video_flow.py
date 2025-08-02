@@ -153,34 +153,30 @@ def main(iregex: str | None, limit_files: int, makeviz: bool):
     if limit_files:
         all_files_to_process = all_files_to_process[:limit_files]
 
-    for node in graph.topological_sort(final_nodes):
-        for file_no, path in enumerate(all_files_to_process):
-            logging.info(
-                f"Processing {file_no + 1} of {len(all_files_to_process)}:"
-                f" {os.path.relpath(path, video_config.VIDEOS_DIR)}"
-            )
-            out_stem = misc_utils.get_output_stem(
-                path, video_config.VIDEOS_DIR, video_config.WORKSPACE_DIR
-            )
+    def prep_fn(file_no: int, path: str):
+        logging.info(
+            f"Processing {file_no + 1} of {len(all_files_to_process)}:"
+            f" {os.path.relpath(path, video_config.VIDEOS_DIR)}"
+        )
+        out_stem = misc_utils.get_output_stem(
+            path, video_config.VIDEOS_DIR, video_config.WORKSPACE_DIR
+        )
 
-            graph.persist(out_stem + ".process_graph_state.json")
-            source_file_const.set("value", path)
-            out_stem_const.set("value", out_stem)
-            graph.run_only(node)
-            video_config.repeated_warnings()
-            if video_config.TESTING_MODE:
-                break
+        graph.persist(out_stem + ".process_graph_state.json")
+        source_file_const.set("value", path)
+        out_stem_const.set("value", out_stem)
 
-        if node in [
+    graph.process_batch(
+        batch_items=all_files_to_process,
+        final_nodes=final_nodes,
+        prep_fn=prep_fn,
+        post_fn=lambda file_no, path: video_config.repeated_warnings(),
+        release_after_nodes=[
             transcribe_node,
             diarize_node,
             role_identify_node,
-        ]:
-            # Free up resources for the next batch after using heavy nodes.
-            graph.release_resources()
-
-    # Explicitly release resources after processing all files.
-    graph.release_resources()
+        ],
+    )
 
     video_config.repeated_warnings()
 
@@ -206,9 +202,15 @@ if __name__ == "__main__":
         action="store_true",
         help="Disables vision pipeline. Dev flag.",
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Disables actual execution of the graph..",
+    )
     args = parser.parse_args()
 
     video_config.ENABLE_VISION = not args.disable_vision
+    process_graph.DRY_RUN = args.dry_run
 
     logging_utils.setup_logging()
     dotenv.load_dotenv()

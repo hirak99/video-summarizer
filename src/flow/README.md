@@ -53,6 +53,10 @@ Nodes in the graph are implemented as subclasses of `process_node.Processor`.  T
 
 ## Batch Optimizations
 
+Some optimizations that batch processing handles is given below.
+
+You can take advantage of these via the `graph.batch_process(...)` method.
+
 ### Hard Reset
 
 Nodes are lazily initialized.

@@ -1,11 +1,12 @@
+import os
 import json
+import tempfile
 import time
+from typing import override
 import unittest
 
 from . import process_graph
 from . import process_node
-
-from typing import override
 
 # pyright: reportPrivateUsage=false
 
@@ -28,6 +29,28 @@ class Inc(process_node.ProcessNode):
     @override
     def process(self, a: int) -> int:
         return a + self._how_much_inc
+
+
+def _decrement_graph(
+    num_nodes: int,
+) -> tuple[process_graph.ProcessGraph, list[process_graph.AddedNode]]:
+    class TestNode(process_node.ProcessNode):
+        @override
+        def process(self, a: int) -> int:
+            # Error if 0.
+            if a <= 0:
+                raise ValueError("Test error")
+            # Decrease a number.
+            return a - 1
+
+    graph = process_graph.ProcessGraph()
+
+    n1 = graph.add_node(1, process_node.constant(), {"value": 0})
+    nodes = [n1]
+    for i in range(2, num_nodes + 1):
+        nodes.append(graph.add_node(i, TestNode, {"a": nodes[-1]}))
+
+    return graph, nodes
 
 
 class TestProcessGraph(unittest.TestCase):
@@ -194,9 +217,9 @@ class TestProcessGraph(unittest.TestCase):
         node3 = graph.add_node(3, SumInt, {"a": node1, "b": node2})
         self.assertEqual(graph._dependencies, {1: set(), 2: {1}, 3: {1, 2}})
 
-        self.assertEqual(graph.topological_sort([node3]), [node1, node2, node3])
-        self.assertEqual(graph.topological_sort([node2]), [node1, node2])
-        self.assertEqual(graph.topological_sort([node2, node3]), [node1, node2, node3])
+        self.assertEqual(graph._topological_sort([node3]), [node1, node2, node3])
+        self.assertEqual(graph._topological_sort([node2]), [node1, node2])
+        self.assertEqual(graph._topological_sort([node2, node3]), [node1, node2, node3])
 
     def test_node_with_init_args(self):
         graph = process_graph.ProcessGraph()
@@ -247,6 +270,25 @@ class TestProcessGraph(unittest.TestCase):
         result_node2 = graph.run_upto([node2])
         self.assertEqual(result_node2, 6)  # (1+2) + (1+2) = 3 + 3 = 6
         self.assertEqual(sum_node2.process_call_count, 2)
+
+    def test_batch_process(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            graph, nodes = _decrement_graph(num_nodes=10)
+
+            def prep_fn(index, item):
+                nodes[0].set("value", item)
+                graph.persist(os.path.join(temp_dir, "persist" + str(index)))
+
+            stats = graph.process_batch(
+                batch_items=[9, 8, 5, 10],
+                final_nodes=[nodes[-1]],
+                prep_fn=prep_fn,
+                release_after_nodes=nodes,
+            )
+
+        self.assertEqual(stats.completed, 2)
+        # 5 and 8 should fail, since decreasing 10 times will make them lower than 0.
+        self.assertEqual({x.item for x in stats.failures}, {8, 5})
 
 
 if __name__ == "__main__":

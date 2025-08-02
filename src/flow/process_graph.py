@@ -5,14 +5,13 @@ import json
 import logging
 import os
 import time
+from typing import Any, Callable, Protocol, Type, TypeVar, Generic
 
 from . import graph_algorithms
 from . import process_node
 
-from typing import Any, Callable, Protocol, Type
-
 # If True, will not initialize node constructors, will not compute, and will not save.
-_DRY_RUN = False
+DRY_RUN = False
 
 
 # Use this to manually override any node computation results.
@@ -171,7 +170,7 @@ class AddedNode:
     def _refresh_result(self):
         kwargs = self._filled_in_inputs
         start = time.time()
-        if _DRY_RUN:
+        if DRY_RUN:
             self._result = None
         else:
             self._result = self._node.process(**kwargs)
@@ -220,6 +219,25 @@ class AddedNode:
         return self._result
 
 
+# Generic type for process_batch arguments.
+_BatchItemT = TypeVar("_BatchItemT")
+
+
+@dataclasses.dataclass
+class _BatchFailure(Generic[_BatchItemT]):
+    item_index: int
+    item: _BatchItemT
+    failed_node: AddedNode
+    exception: Exception
+
+
+@dataclasses.dataclass
+class _BatchStats(Generic[_BatchItemT]):
+    completed: int
+    # Contains the item_index, item, node, and the exception.
+    failures: list[_BatchFailure[_BatchItemT]]
+
+
 class ProcessGraph:
     def __init__(self):
         # Nodes with no dependents (used for running a subset of the graph).
@@ -230,7 +248,7 @@ class ProcessGraph:
         self._dependencies: dict[int, set[int]] = {}
 
     def _save_to(self, path: str):
-        if _DRY_RUN:
+        if DRY_RUN:
             return
         logging.info(f"Saving graph state to {path}")
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -342,7 +360,13 @@ class ProcessGraph:
             f"Loaded nodes from disk: {loaded_count} of {len(self._all_nodes)}"
         )
 
-    def topological_sort(
+    def run_upto(self, final_nodes: list[AddedNode]) -> Any:
+        last_result: Any = None
+        for node in self._topological_sort(final_nodes):
+            last_result = node.internal_run()
+        return last_result
+
+    def _topological_sort(
         self,
         final_nodes: list[AddedNode],
     ) -> list[AddedNode]:
@@ -363,11 +387,78 @@ class ProcessGraph:
             result.append(self._all_nodes[node_id])
         return result
 
-    def run_upto(self, final_nodes: list[AddedNode]) -> Any:
-        last_result: Any = None
-        for node in self.topological_sort(final_nodes):
-            last_result = node.internal_run()
-        return last_result
-
-    def run_only(self, node: AddedNode) -> Any:
+    def _run_only(self, node: AddedNode) -> Any:
         return node.internal_run()
+
+    def process_batch(
+        self,
+        *,
+        batch_items: list[_BatchItemT],
+        final_nodes: list[AddedNode],
+        prep_fn: Callable[[int, _BatchItemT], None],
+        post_fn: Callable[[int, _BatchItemT], None] | None = None,
+        release_after_nodes: list[AddedNode] | None = None,
+        fault_tolerant: bool = True,
+    ) -> _BatchStats[_BatchItemT]:
+        """Runs the nodes breath-first, for efficient resource managmement.
+
+        Args:
+            inputs: The list of items to process.
+            final_nodes: The nodes which need evaluated. All dependant nodes will automatically be evaluated.
+            prep_fn: Called before a node is run. This (1) should call graph.persist(FILE_BASED_ON_ITEM), and (2) should set constants.
+            post_fn: Called after a node is run.
+            release_after_nodes: Nodes which are used for heavy computation. When these are used, resources are freed up.
+            fault_tolerant: If True, will continue other items and summarize errors at the end. If False, will stop immediately if a node execution fails.
+        """
+
+        batch_result = _BatchStats[_BatchItemT](completed=0, failures=[])
+
+        # Indexed by the items.
+        indices_with_errors: set[int] = set()
+
+        nodes_to_run = self._topological_sort(final_nodes)
+
+        for node_index, node in enumerate(nodes_to_run):
+            is_last_node = node_index == len(nodes_to_run) - 1
+
+            for item_index, item in enumerate(batch_items):
+                if item_index in indices_with_errors:
+                    logging.info(f"Skipping {item_index} due to previous error.")
+                    continue
+
+                # It's essential to have the results persist for breath-first running.
+                self._auto_save_path = None
+                prep_fn(item_index, item)
+                if self._auto_save_path is None:
+                    raise ValueError(f"persist() must be called in prep_fn")
+
+                try:
+                    self._run_only(node)
+                except Exception as exc:
+                    if not fault_tolerant:
+                        raise exc
+                    logging.warning(
+                        f"Error processing {item!r} for node {node.id}: {node.name}. Error: {exc}"
+                    )
+                    indices_with_errors.add(item_index)
+                    # batch_result.failures.append((index, item, node, exc))
+                    batch_result.failures.append(
+                        _BatchFailure(item_index, item, node, exc)
+                    )
+                    continue
+
+                if is_last_node:
+                    batch_result.completed += 1
+
+                if post_fn is not None:
+                    post_fn(item_index, item)
+
+            if release_after_nodes is not None:
+                if node in release_after_nodes:
+                    # Free up resources for the next batch after using heavy nodes.
+                    self.release_resources()
+
+        # Explicitly release resources after processing all inputs.
+        self.release_resources()
+
+        return batch_result

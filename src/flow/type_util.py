@@ -6,13 +6,13 @@ def matches(obj, typ) -> bool:
     """
     Runtime type checking utility that should have been in `typing`.
 
-    Recursively checks if an object matches a given type annotation at runtime.
+    Recursively checks if an object matches a given type annotation.
 
     Supports standard types, Union, Any, list, set, dict, tuple, and TypedDict.
     Special handling:
     - int: Allows float values (but not bool).
     - tuple: Allows list instances if elements and length match (due to JSON).
-    - TypedDict: Validates all keys and their types as defined in the TypedDict, allowing extra keys.
+    - TypedDict: Validates all keys and their types as defined in the TypedDict, allows extra keys.
 
     Examples:
         type_util.matches(1, int)  # True
