@@ -31,7 +31,7 @@ For full documentation, please also see the code.
 
 ### The `ProcessGraph` Class
 
-([Code](./src/flow/process_graph.py))
+([Code](./process_graph.py))
 
 
 The `ProcessGraph` class manages the workflow execution. Key methods include:
@@ -45,7 +45,7 @@ The `ProcessGraph` class manages the workflow execution. Key methods include:
 
 ### The `process_node.Processor` Class
 
-([Code](./src/flow/process_node.py))
+([Code](./process_node.py))
 
 Nodes in the graph are implemented as subclasses of `process_node.Processor`.  The core method is:
 
