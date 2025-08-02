@@ -196,6 +196,7 @@ class ProcessGraph:
         prep_fn: Callable[[int, _BatchItemT], None],
         post_fn: Callable[[int, _BatchItemT], None] | None = None,
         release_after_nodes: list[internal_graph_node.AddedNode] | None = None,
+        # TODO: Only if needed, replace or add faults_per_node_allowed.
         fault_tolerant: bool = True,
     ) -> _BatchStats[_BatchItemT]:
         """Runs the nodes breath-first, for efficient resource managmement.
@@ -203,7 +204,7 @@ class ProcessGraph:
         Args:
             inputs: The list of items to process.
             final_nodes: The nodes which need evaluated. All dependant nodes will automatically be evaluated.
-            prep_fn: Called before a node is run. This (1) should call graph.persist(FILE_BASED_ON_ITEM), and (2) should set constants.
+            prep_fn: Called before a node is run. This (1) must call graph.persist(FILE_BASED_ON_ITEM), and (2) should set constants.
             post_fn: Called after a node is run.
             release_after_nodes: Nodes which are used for heavy computation. When these are used, resources are freed up.
             fault_tolerant: If True, will continue other items and summarize errors at the end. If False, will stop immediately if a node execution fails.

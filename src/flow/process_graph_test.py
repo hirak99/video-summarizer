@@ -39,11 +39,12 @@ def _decrement_graph(
     class TestNode(process_node.ProcessNode):
         @override
         def process(self, a: int) -> int:
-            # Error if 0.
-            if a <= 0:
+            result = a - 1
+            # Fail if we reach 0.
+            # So if we have 10 nodes and start with 10, failure will occur.
+            if result <= 0:
                 raise ValueError("Test error")
-            # Decrease a number.
-            return a - 1
+            return result
 
     graph = process_graph.ProcessGraph()
 
@@ -273,6 +274,20 @@ class TestProcessGraph(unittest.TestCase):
         self.assertEqual(result_node2, 6)  # (1+2) + (1+2) = 3 + 3 = 6
         self.assertEqual(sum_node2.process_call_count, 2)
 
+    def test_batch_process_needs_persist(self):
+        graph, nodes = _decrement_graph(num_nodes=10)
+
+        def prep_fn(index, item):
+            nodes[0].set("value", item)
+
+        with self.assertRaisesRegex(ValueError, r"persist\(\) must be called"):
+            graph.process_batch(
+                batch_items=[11, 9, 5, 10],
+                final_nodes=[nodes[-1]],
+                prep_fn=prep_fn,
+                release_after_nodes=nodes,
+            )
+
     def test_batch_process(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             graph, nodes = _decrement_graph(num_nodes=10)
@@ -282,7 +297,7 @@ class TestProcessGraph(unittest.TestCase):
                 graph.persist(os.path.join(temp_dir, "persist" + str(index)))
 
             stats = graph.process_batch(
-                batch_items=[9, 8, 5, 10],
+                batch_items=[11, 9, 5, 10],
                 final_nodes=[nodes[-1]],
                 prep_fn=prep_fn,
                 release_after_nodes=nodes,
@@ -290,7 +305,42 @@ class TestProcessGraph(unittest.TestCase):
 
         self.assertEqual(stats.completed, 2)
         # 5 and 8 should fail, since decreasing 10 times will make them lower than 0.
-        self.assertEqual({x.item for x in stats.failures}, {8, 5})
+        self.assertEqual({x.item for x in stats.failures}, {9, 5})
+
+    def test_batch_process_fail_fast(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            graph, nodes = _decrement_graph(num_nodes=10)
+
+            def prep_fn(index, item):
+                nodes[0].set("value", item)
+                graph.persist(os.path.join(temp_dir, "persist" + str(index)))
+
+            # Values 9 and 5 will cause failure.
+            with self.assertRaisesRegex(ValueError, r"Test error"):
+                graph.process_batch(
+                    batch_items=[11, 9, 5, 10],
+                    final_nodes=[nodes[-1]],
+                    prep_fn=prep_fn,
+                    release_after_nodes=nodes,
+                    fault_tolerant=False,  # Make it fail immediately.
+                )
+
+    def test_batch_process_fail_fast_no_failures(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            graph, nodes = _decrement_graph(num_nodes=10)
+
+            def prep_fn(index, item):
+                nodes[0].set("value", item)
+                graph.persist(os.path.join(temp_dir, "persist" + str(index)))
+
+            # Does not fail.
+            graph.process_batch(
+                batch_items=[11, 10],
+                final_nodes=[nodes[-1]],
+                prep_fn=prep_fn,
+                release_after_nodes=nodes,
+                fault_tolerant=False,  # On error, do not continue.
+            )
 
 
 if __name__ == "__main__":
