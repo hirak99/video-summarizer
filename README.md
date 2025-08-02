@@ -128,3 +128,11 @@ export OPEN_API_KEY="your OpenAI key"
 # Run the student highlight compilation flow.
 ./scripts/student_flow.sh
 ```
+
+## Real-Life Usage
+
+This project originally began as a [private project](https://github.com/hirak99/process_graph) (restricted access).
+
+After extracting the domain-specific data, the first public release was made with over 280 commits squashed into a single release.
+
+The parent project now includes this repository as a submodule, while overriding the domain-specific data.
