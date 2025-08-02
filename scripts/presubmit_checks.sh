@@ -12,6 +12,6 @@ pyright src/
 
 isort --check-only src/
 
-python -m unittest src/**/*_test.py
+find -type f -iname '*_test.py' -exec python -m unittest {} +
 
 echo All done 👍
