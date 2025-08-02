@@ -297,14 +297,23 @@ class TestProcessGraph(unittest.TestCase):
                 graph.persist(os.path.join(temp_dir, "persist" + str(index)))
 
             stats = graph.process_batch(
-                batch_items=[11, 9, 5, 10],
+                batch_items=[10, 9, 21, 5],
                 final_nodes=[nodes[-1]],
                 prep_fn=prep_fn,
                 release_after_nodes=nodes,
             )
 
+            # Verify one of the computations, after loading it with persist.
+            graph.persist(os.path.join(temp_dir, "persist2"))
+            self.assertEqual(
+                [graph.results_dict[node.id]["output"] for node in nodes],
+                [21, 20, 19, 18, 17, 16, 15, 14, 13, 12],
+            )
+
+        # Only two should succeed, 10 and 21.
         self.assertEqual(stats.completed, 2)
-        # 5 and 8 should fail, since decreasing 10 times will make them lower than 0.
+
+        # 9 and 5 should fail, since decreasing 10 times will make them lower than 0.
         self.assertEqual({x.item for x in stats.failures}, {9, 5})
 
     def test_batch_process_fail_fast(self):
