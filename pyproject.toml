@@ -1,0 +1,24 @@
+[tool.pyright]
+include = ["src"]
+exclude = []
+typeCheckingMode = "strict"
+
+# Whittle down some elements from analysis mode of "strict".
+reportMissingParameterType = "none"
+reportUnknownArgumentType = "none"
+reportUnknownLambdaType = "none"
+reportUnknownMemberType = "none"
+reportUnknownParameterType = "none"
+reportUnknownVariableType = "none"
+# Allow **kwargs to be subclassed as expanded.
+reportIncompatibleMethodOverride = "none"
+reportUntypedFunctionDecorator = "error"
+
+pythonVersion = "3.13"
+pythonPlatform = "Linux"
+
+[tool.isort]
+line_length = 88
+profile = "google"
+src_paths = ["src"]
+forced_separate = ["typing"]

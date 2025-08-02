@@ -5,10 +5,11 @@ import json
 import logging
 import os
 import time
-from typing import Any, Callable, Protocol, Type, TypeVar, Generic
 
 from . import graph_algorithms
 from . import process_node
+
+from typing import Any, Callable, Generic, Protocol, Type, TypeVar
 
 # If True, will not initialize node constructors, will not compute, and will not save.
 DRY_RUN = False

@@ -11,7 +11,6 @@ import hashlib
 import json
 import logging
 import os
-from typing import Any, override
 
 import moviepy  # type: ignore
 from PIL import Image
@@ -28,6 +27,8 @@ from ..utils import interval_scanner
 from ..utils import manual_labels_manager
 from ..utils import misc_utils
 from ..utils import templater
+
+from typing import Any, override
 
 # Number of seconds to probe the video for.
 _RESOLUTION_S = 5.0
