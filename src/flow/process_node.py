@@ -36,7 +36,8 @@ class ProcessNode(abc.ABC):
     def validate_args(self, kwargs) -> None:
         """Validates kwargs against the overridden process()'s signature.
 
-        Normally this should suffice. Override for specialized nodes.
+        Normally the default implementation should suffice. Override for
+        specialized nodes.
 
         Raises:
             TypeError: If validation fails.

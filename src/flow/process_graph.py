@@ -175,7 +175,7 @@ class ProcessGraph:
         details.
 
         Args:
-            starting_node: The node to be run finally. Only it and its
+            final_nodes: The nodes to be run finally. Only these nodes and their
             dependencies will be sorted.
         """
         result: list[internal_graph_node.AddedNode] = []
@@ -195,18 +195,18 @@ class ProcessGraph:
         final_nodes: list[internal_graph_node.AddedNode],
         prep_fn: Callable[[int, _BatchItemT], None],
         post_fn: Callable[[int, _BatchItemT], None] | None = None,
-        release_after_nodes: list[internal_graph_node.AddedNode] | None = None,
+        release_resources_after: list[internal_graph_node.AddedNode] | None = None,
         # TODO: Only if needed, replace or add faults_per_node_allowed.
         fault_tolerant: bool = True,
     ) -> _BatchStats[_BatchItemT]:
         """Runs the nodes breath-first, for efficient resource managmement.
 
         Args:
-            inputs: The list of items to process.
+            batch_items: The list of items to process.
             final_nodes: The nodes which need evaluated. All dependant nodes will automatically be evaluated.
             prep_fn: Called before a node is run. This (1) must call graph.persist(FILE_BASED_ON_ITEM), and (2) should set constants.
             post_fn: Called after a node is run.
-            release_after_nodes: Nodes which are used for heavy computation. When these are used, resources are freed up.
+            release_resources_after: Nodes which are used for heavy computation. When these are used, resources are freed up.
             fault_tolerant: If True, will continue other items and summarize errors at the end. If False, will stop immediately if a node execution fails.
         """
 
@@ -252,8 +252,8 @@ class ProcessGraph:
                 if post_fn is not None:
                     post_fn(item_index, item)
 
-            if release_after_nodes is not None:
-                if node in release_after_nodes:
+            if release_resources_after is not None:
+                if node in release_resources_after:
                     # Free up resources for the next batch after using heavy nodes.
                     self.release_resources()
 

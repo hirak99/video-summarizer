@@ -172,7 +172,7 @@ def main(iregex: str | None, limit_files: int, makeviz: bool, dry_run: bool):
         final_nodes=final_nodes,
         prep_fn=prep_fn,
         post_fn=lambda file_no, path: video_config.repeated_warnings(),
-        release_after_nodes=[
+        release_resources_after=[
             transcribe_node,
             diarize_node,
             role_identify_node,

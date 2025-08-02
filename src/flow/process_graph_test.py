@@ -285,7 +285,7 @@ class TestProcessGraph(unittest.TestCase):
                 batch_items=[11, 9, 5, 10],
                 final_nodes=[nodes[-1]],
                 prep_fn=prep_fn,
-                release_after_nodes=nodes,
+                release_resources_after=nodes,
             )
 
     def test_batch_process(self):
@@ -300,7 +300,7 @@ class TestProcessGraph(unittest.TestCase):
                 batch_items=[10, 9, 21, 5],
                 final_nodes=[nodes[-1]],
                 prep_fn=prep_fn,
-                release_after_nodes=nodes,
+                release_resources_after=nodes,
             )
 
             # Verify one of the computations, after loading it with persist.
@@ -330,7 +330,7 @@ class TestProcessGraph(unittest.TestCase):
                     batch_items=[11, 9, 5, 10],
                     final_nodes=[nodes[-1]],
                     prep_fn=prep_fn,
-                    release_after_nodes=nodes,
+                    release_resources_after=nodes,
                     fault_tolerant=False,  # Make it fail immediately.
                 )
 
@@ -347,7 +347,7 @@ class TestProcessGraph(unittest.TestCase):
                 batch_items=[11, 10],
                 final_nodes=[nodes[-1]],
                 prep_fn=prep_fn,
-                release_after_nodes=nodes,
+                release_resources_after=nodes,
                 fault_tolerant=False,  # On error, do not continue.
             )
 
