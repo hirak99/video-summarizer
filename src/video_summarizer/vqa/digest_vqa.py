@@ -1,5 +1,3 @@
-import json
-
 from . import abstract_vqa
 from .. import prompt_templates
 from .. import video_flow_executor
@@ -7,8 +5,6 @@ from ..llm_service import abstract_llm
 from ..llm_service import llm
 from ..utils import prompt_utils
 from ..utils import templater
-from ..video_flow_nodes import role_based_captioner
-from ..video_flow_nodes import vision_processor
 
 from typing import override
 
@@ -23,32 +19,8 @@ class DigestVqa(abstract_vqa.AbstractVqa):
         executor = video_flow_executor.VideoFlowExecutor(makeviz=False, dry_run=True)
         executor.persist_graph_for(video_path)
 
-        graph_results = executor.graph.results_dict
-        if not graph_results:
-            raise ValueError(f"Could not laod results for {video_path!r}")
-
-        self._scene_understanding: vision_processor.SceneListT | None = None
-        self._role_aware_caption: (
-            list[role_based_captioner.RoleAwareCaptionT] | None
-        ) = None
-
-        # TODO: Make this easier to get without knowing details of process_graph.
-        for _, item in graph_results.items():
-            if item["name"] == "VisionProcess":
-                vision_digest_file = item["output"]
-                with open(vision_digest_file) as f:
-                    self._scene_understanding = (
-                        vision_processor.SceneListT.model_validate_json(f.read())
-                    )
-            elif item["name"] == "RoleBasedCaptionsNode":
-                role_aware_caption_file = item["output"]
-                with open(role_aware_caption_file) as f:
-                    self._role_aware_caption = json.load(f)
-
-        if self._scene_understanding is None:
-            raise ValueError(f"Could not load scene understanding")
-        if self._role_aware_caption is None:
-            raise ValueError(f"Could not load role aware captions")
+        self._scene_understanding = executor.scene_understanding_result()
+        self._role_aware_caption = executor.role_aware_captions()
 
         # Use self._loaded_model instead of directly accessing this.
         self._model: abstract_llm.AbstractLlm | None = None
@@ -58,6 +30,7 @@ class DigestVqa(abstract_vqa.AbstractVqa):
 
     @property
     def _loaded_model(self) -> abstract_llm.AbstractLlm:
+        """Lazily instantiate and return the model."""
         if self._model is None:
             self._model = llm.OpenAiLlmInstance(_OPENAI_MODEL)
         return self._model

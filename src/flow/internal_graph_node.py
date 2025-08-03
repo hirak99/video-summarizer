@@ -64,6 +64,10 @@ class AddedNode:
     def has_result(self) -> bool:
         return self._result_timestamp is not None
 
+    @property
+    def result(self) -> Any:
+        return self._result
+
     # Control access of this; because accessing this will initialize the node.
     @property
     def _node(self) -> process_node.ProcessNode:

@@ -1,4 +1,5 @@
 import functools
+import json
 import logging
 import os
 import re
@@ -83,7 +84,7 @@ class VideoFlowExecutor:
             },
             invalidate_before=1749101896,
         )
-        role_based_caption_node = graph.add_node(
+        self._role_based_caption_node = graph.add_node(
             9,
             role_based_captioner.RoleBasedCaptionsNode,
             {
@@ -92,12 +93,12 @@ class VideoFlowExecutor:
                 "out_file_stem": self._out_stem_const,
             },
         )
-        vision_process_node = graph.add_node(
+        self._vision_process_node = graph.add_node(
             13,
             vision_processor.VisionProcess,
             {
                 "source_file": self._source_file_const,
-                "role_aware_summary_file": role_based_caption_node,
+                "role_aware_summary_file": self._role_based_caption_node,
                 "out_file_stem": self._out_stem_const,
             },
             version=4,
@@ -107,8 +108,8 @@ class VideoFlowExecutor:
             student_evaluator.StudentEvaluator,
             {
                 "source_file": self._source_file_const,
-                "role_aware_summary_file": role_based_caption_node,
-                "scene_understanding_file": vision_process_node,
+                "role_aware_summary_file": self._role_based_caption_node,
+                "scene_understanding_file": self._vision_process_node,
                 "out_file_stem": self._out_stem_const,
             },
             version=3,
@@ -201,3 +202,17 @@ class VideoFlowExecutor:
         )
 
         video_config.repeated_warnings()
+
+    def role_aware_captions(self) -> list[role_based_captioner.RoleAwareCaptionT]:
+        result = self._role_based_caption_node.result
+        if result is None:
+            raise ValueError("Result not found")
+        with open(result) as f:
+            return json.load(f)
+
+    def scene_understanding_result(self) -> vision_processor.SceneListT:
+        result = self._vision_process_node.result
+        if result is None:
+            raise ValueError("Result not found")
+        with open(result) as f:
+            return vision_processor.SceneListT.model_validate_json(f.read())

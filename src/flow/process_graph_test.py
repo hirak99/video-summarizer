@@ -71,7 +71,7 @@ class TestProcessGraph(unittest.TestCase):
             1: {"name": "SumInt", "output": 3, "version": 0},
             2: {"name": "SumInt", "output": 6, "version": 2},
         }
-        result = graph.results_dict.copy()
+        result = graph._results_dict.copy()
         # Don't care about things like output_ts and time.
         for result_item in result.values():
             del result_item["meta"]
@@ -183,7 +183,7 @@ class TestProcessGraph(unittest.TestCase):
         const = graph.add_node(1, process_node.constant(), {"value": 2})
         graph.run_upto([const])
 
-        results_dict = json.loads(json.dumps(graph.results_dict))
+        results_dict = json.loads(json.dumps(graph._results_dict))
 
         graph = process_graph.ProcessGraph()
         const = graph.add_node(1, process_node.constant(), {"value": 2})
@@ -200,7 +200,7 @@ class TestProcessGraph(unittest.TestCase):
 
         graph, final_node = make_graph()
         result = graph.run_upto([final_node])
-        results_dict = graph.results_dict
+        results_dict = graph._results_dict
 
         # Results dict should survive jsonification.
         results_dict_reloaded = json.loads(json.dumps(results_dict))
@@ -208,7 +208,7 @@ class TestProcessGraph(unittest.TestCase):
         # Remake the graph, load, and test.
         graph, final_node = make_graph()
         graph._load_results_dict(results_dict_reloaded)
-        self.assertEqual(results_dict, graph.results_dict)
+        self.assertEqual(results_dict, graph._results_dict)
         self.assertEqual(result, graph.run_upto([final_node]))
         # There should be no new computation when we called graph.run_upto([final_node]).
         self.assertEqual(final_node._node.process_call_count, 0)  # type: ignore
@@ -306,7 +306,7 @@ class TestProcessGraph(unittest.TestCase):
             # Verify one of the computations, after loading it with persist.
             graph.persist(os.path.join(temp_dir, "persist2"))
             self.assertEqual(
-                [graph.results_dict[node.id]["output"] for node in nodes],
+                [graph._results_dict[node.id]["output"] for node in nodes],
                 [21, 20, 19, 18, 17, 16, 15, 14, 13, 12],
             )
 

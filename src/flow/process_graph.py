@@ -50,7 +50,7 @@ class ProcessGraph:
         logging.info(f"Saving graph state to {path}")
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w") as f:
-            json.dump(self.results_dict, f)
+            json.dump(self._results_dict, f)
 
     def persist(self, path: str):
         """Sets a file where the results will be saved.
@@ -135,7 +135,7 @@ class ProcessGraph:
             node_instance.release_resources()
 
     @property
-    def results_dict(self):
+    def _results_dict(self):
         """Returns current results from the graph."""
         results = {}
         for id, node_instance in self._all_nodes.items():
