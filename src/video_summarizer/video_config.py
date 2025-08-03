@@ -49,7 +49,7 @@ _TEMP_DIR = _HOME / "data/_tmp"
 TESTING_MODE = False
 
 # Development flag, set via video_flow.py.
-ENABLE_VISION = False
+ENABLE_VISION = True
 
 
 def tempdir() -> pathlib.Path:
