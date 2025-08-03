@@ -1,0 +1,203 @@
+import functools
+import logging
+import os
+import re
+
+from . import video_config
+from ..domain_specific import domain_config
+from ..flow import internal_graph_node
+from ..flow import process_graph
+from ..flow import process_node
+from .utils import misc_utils
+from .video_flow_nodes import caption_visualizer
+from .video_flow_nodes import ocr_detector
+from .video_flow_nodes import role_based_captioner
+from .video_flow_nodes import role_identifier
+from .video_flow_nodes import speaker_assigner
+from .video_flow_nodes import student_evaluator
+from .video_flow_nodes import student_movie_compiler
+from .video_flow_nodes import transcriber
+from .video_flow_nodes import vision_processor
+from .video_flow_nodes import voice_separator
+
+
+class VideoFlowExecutor:
+    def __init__(self, *, makeviz: bool, dry_run: bool):
+        """Makes the graph but does not execute anything."""
+
+        graph = process_graph.ProcessGraph(dry_run=dry_run)
+
+        # Don't re-use purged node ids.
+        # Next Id: 14
+        # 3 is deprecated.
+        self._source_file_const = graph.add_node(
+            0, process_node.constant("Source Video"), {"value": ""}
+        )
+        self._out_stem_const = graph.add_node(1, process_node.constant(), {"value": ""})
+        transcribe_node = graph.add_node(
+            2,
+            transcriber.WhisperTranscribe,
+            {
+                "source_file": self._source_file_const,
+                "out_file_stem": self._out_stem_const,
+            },
+            invalidate_before=1753438637,
+        )
+        diarize_node = graph.add_node(
+            7,
+            voice_separator.VoiceSeparator,
+            {
+                "source_file": self._source_file_const,
+                "out_file_stem": self._out_stem_const,
+            },
+            invalidate_before=1751002018,
+        )
+        speaker_assign_node = graph.add_node(
+            6,
+            speaker_assigner.SpeakerAssigner,
+            {
+                "captions_file": transcribe_node,
+                "diarization_file": diarize_node,
+                "out_file_stem": self._out_stem_const,
+            },
+            invalidate_before=1748629535,
+        )
+        role_identify_node = graph.add_node(
+            8,
+            role_identifier.RoleIdentifier,
+            {
+                "word_captions_file": speaker_assign_node,
+                "out_file_stem": self._out_stem_const,
+            },
+            invalidate_before=1749284285,
+        )
+        visualize_node = graph.add_node(
+            5,
+            caption_visualizer.CaptionVisualizer,
+            {
+                "source_file": self._source_file_const,
+                "word_captions_file": speaker_assign_node,
+                "diarization_file": diarize_node,
+                "identified_roles": role_identify_node,
+                "out_file_stem": self._out_stem_const,
+            },
+            invalidate_before=1749101896,
+        )
+        role_based_caption_node = graph.add_node(
+            9,
+            role_based_captioner.RoleBasedCaptionsNode,
+            {
+                "word_captions_file": speaker_assign_node,
+                "identified_roles": role_identify_node,
+                "out_file_stem": self._out_stem_const,
+            },
+        )
+        vision_process_node = graph.add_node(
+            13,
+            vision_processor.VisionProcess,
+            {
+                "source_file": self._source_file_const,
+                "role_aware_summary_file": role_based_caption_node,
+                "out_file_stem": self._out_stem_const,
+            },
+            version=4,
+        )
+        student_evaluate_node = graph.add_node(
+            10,
+            student_evaluator.StudentEvaluator,
+            {
+                "source_file": self._source_file_const,
+                "role_aware_summary_file": role_based_caption_node,
+                "scene_understanding_file": vision_process_node,
+                "out_file_stem": self._out_stem_const,
+            },
+            version=3,
+        )
+        student_movie_compile_node = graph.add_node(
+            11,
+            student_movie_compiler.StudentMovieCompiler,
+            {
+                "source_file": self._source_file_const,
+                "highlights_file": student_evaluate_node,
+                "out_file_stem": self._out_stem_const,
+            },
+        )
+        del student_movie_compile_node  # TBR
+        ocr_detect_node = graph.add_node(
+            12,
+            ocr_detector.OcrDetector,
+            {
+                "source_file": self._source_file_const,
+                "out_file_stem": self._out_stem_const,
+            },
+            invalidate_before=1749315690,
+        )
+
+        # Final target node(s) for all files.
+        final_nodes: list[internal_graph_node.AddedNode] = [
+            student_evaluate_node,
+            ocr_detect_node,
+        ]
+        if makeviz:
+            final_nodes.append(visualize_node)
+
+        self._graph = graph
+        self._final_nodes = final_nodes
+        self._release_resources_after = [
+            transcribe_node,
+            diarize_node,
+            role_identify_node,
+        ]
+
+    def persist_graph_for(self, video_path: str):
+        out_stem = misc_utils.get_output_stem(
+            video_path, video_config.VIDEOS_DIR, video_config.WORKSPACE_DIR
+        )
+        self._graph.persist(out_stem + ".process_graph_state.json")
+        self._source_file_const.set("value", video_path)
+        self._out_stem_const.set("value", out_stem)
+
+    def process(self, iregex: str | None, limit_files: int):
+
+        all_files_to_process: list[str] = []
+        for dirpath, dirnames, filenames in os.walk(video_config.VIDEOS_DIR):
+            del dirnames  # Unused.
+            for filename in filenames:
+                if filename.endswith(".mkv") or filename.endswith(".mp4"):
+                    path = os.path.join(dirpath, filename)
+                    if iregex is not None and not re.search(
+                        iregex, path, re.IGNORECASE
+                    ):
+                        continue
+                    for student_id in domain_config.STUDENTS:
+                        if re.search(rf"(\b|_){student_id}\b", path):
+                            # Add this path.
+                            break
+                    else:
+                        if iregex is not None:
+                            logging.info(
+                                f"Ignoring iregex match {path!r}, because not in STUDENTS."
+                            )
+                        continue
+                    all_files_to_process.append(path)
+        if limit_files:
+            all_files_to_process = all_files_to_process[:limit_files]
+
+        def prep_fn(file_no: int, video_path: str, count: int):
+            logging.info(
+                f"Processing {file_no + 1} of {count}:"
+                f" {os.path.relpath(video_path, video_config.VIDEOS_DIR)}"
+            )
+            self.persist_graph_for(video_path)
+
+        self._graph.process_batch(
+            batch_items=all_files_to_process,
+            final_nodes=self._final_nodes,
+            prep_fn=functools.partial(prep_fn, count=len(all_files_to_process)),
+            post_fn=lambda file_no, path: video_config.repeated_warnings(),
+            release_resources_after=self._release_resources_after,
+            # As there is little to no errors, we want to fail immediately.
+            fault_tolerant=False,
+        )
+
+        video_config.repeated_warnings()
