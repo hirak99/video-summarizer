@@ -6,11 +6,11 @@ This repository hosts two closely related projects designed to build a scalable 
 
 1. **[Flow](./src/flow/README.md)**
 
-   A user-friendly DAG-based workflow manager that offers task resumption, caching, logging, error handling, and persistence, ensuring efficient and fault-tolerant execution of machine learning pipelines.
+   A DAG-based workflow manager that offers task resumption, caching, logging, error handling, and persistence, ensuring efficient and fault-tolerant execution of machine learning pipelines.
 
 2. **[Video Summarizer](./src/video_summarizer/README.md)**
 
-   A video understanding, summarization, and question-answering system. It can be used to automatically summarize hours of technical video into 5-minute digest with explanations, or to interactively probe any video.
+   A video understanding, summarization, and question-answering system that automatically summarizes hours of technical video into a concise 5-minute digest.
 
 Here is the main video processing flow this implements.
 

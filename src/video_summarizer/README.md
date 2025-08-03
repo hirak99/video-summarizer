@@ -60,3 +60,28 @@ flowchart TD
     Y@{ shape: procs}
     Z@{ shape: procs}
 ```
+
+## Visual Question & Answer
+
+Here's how VQA fits into the rest of the architecture -
+
+```mermaid
+flowchart LR
+    A["Video Understanding"] --> B["Applications"]
+    B ~~~ APP_LIST["Summary Reels,<br>Issue Detection,<br>etc."]
+    A -. implements .-> C["VQA"]
+    C --> D["User Interface"] & E["Automated Evaluation"]
+    E -. measures .-> A
+
+    APP_LIST@{ shape: comment}
+```
+
+It's crucial to note that VQA uses an abstraction ([ref](./vqa/abstract_vqa.py)) that is independent of the rest of video understanding implementation. This removes mental barriers in evolving or even replacing the underlying system without being encumbered by VQA's implementation.
+
+While the abstraction is independent, VQA's implementation will be tied to specific video-understanding systems.
+
+One primary usa case of VQA is to facilitate the automatic evaluation of our system.
+
+This is achieved by setting up questions and precise answers at various points in test videos, which VQA can then process to come up with its own answers, and can be scored automatically.
+
+Additionally, there's a CLI tool ([ref](./vqa_cli.py)) that can be used to interactively test and probe the models. This could easily be extended into a web interface, allowing users to pause the video at any point and ask questions if desired.
