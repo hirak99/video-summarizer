@@ -110,3 +110,20 @@ AUTO_EVAL_PROMPT_TEMPLATE = [
     '  "reason": "Your detailed reasoning based on the transcript provided"',
     "}",
 ]
+
+
+DIGEST_VQA_PROMPT_TEMPLATE = [
+    "Read the caption below and then answer the question.",
+    "",
+    "{caption_lines}",
+    "",
+    "Now imagine you just watched the video until this point, instead of just reading the caption.",
+    "Another person who watched the video with you wants to understand some details. Please help by answering any question.",
+    "- Keep it factual. Do not extrapolate details not confirmed in the transcript, since we are evaluating the video.",
+    "- Keep it short. No need to quote transcript or justify (unless specifically asked).",
+    "- When you use the visual cues, word it as if you saw it with the user watching the video.",
+    "",
+    "{history}",
+    "",
+    "Question: {question}",
+]

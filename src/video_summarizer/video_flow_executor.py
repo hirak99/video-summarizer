@@ -141,7 +141,7 @@ class VideoFlowExecutor:
         if makeviz:
             final_nodes.append(visualize_node)
 
-        self._graph = graph
+        self.graph = graph
         self._final_nodes = final_nodes
         self._release_resources_after = [
             transcribe_node,
@@ -153,7 +153,7 @@ class VideoFlowExecutor:
         out_stem = misc_utils.get_output_stem(
             video_path, video_config.VIDEOS_DIR, video_config.WORKSPACE_DIR
         )
-        self._graph.persist(out_stem + ".process_graph_state.json")
+        self.graph.persist(out_stem + ".process_graph_state.json")
         self._source_file_const.set("value", video_path)
         self._out_stem_const.set("value", out_stem)
 
@@ -190,7 +190,7 @@ class VideoFlowExecutor:
             )
             self.persist_graph_for(video_path)
 
-        self._graph.process_batch(
+        self.graph.process_batch(
             batch_items=all_files_to_process,
             final_nodes=self._final_nodes,
             prep_fn=functools.partial(prep_fn, count=len(all_files_to_process)),

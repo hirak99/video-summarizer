@@ -3,8 +3,8 @@ import argparse
 import dotenv
 
 from . import video_config
-from .utils import logging_utils
 from . import video_flow_executor
+from .utils import logging_utils
 
 
 def _main(iregex: str | None, limit_files: int, makeviz: bool, dry_run: bool):

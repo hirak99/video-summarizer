@@ -10,7 +10,7 @@ This repository hosts two closely related projects designed to build a scalable 
 
 2. **[Video Summarizer](./src/video_summarizer/README.md)**
 
-   A video understanding and summarization system that can be used to automatically summarize hours of technical video into 5-minute digest with explanations.
+   A video understanding, summarization, and question-answering system. It can be used to automatically summarize hours of technical video into 5-minute digest with explanations, or to interactively probe any video.
 
 Here is the main video processing flow this implements.
 
