@@ -122,11 +122,10 @@ export OPEN_API_KEY="your OpenAI key"
 
 # Then you can run a binary like below.
 
-# Run each video file through video-understanding flow.
-./scripts/video_flow.sh
-
-# Run the student highlight compilation flow.
-./scripts/student_flow.sh
+# All the run_*.sh scripts run binaries.
+# Run video_flow and student_flow.
+./scripts/run_video_flow.sh
+./scripts/run_student_flow.sh
 ```
 
 ## Real-Life Usage
