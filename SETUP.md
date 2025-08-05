@@ -26,7 +26,7 @@ sudo apt install tesseract-ocr
 
 Manual labels are done using [Video Annotator](https://github.com/hirak99/video-annotator).
 
-See the constants in [manual_labels_manager.py](./src/video_summarizer/utils/manual_labels_manager.py) for conventions used (e.g. where the labels are stored, etc.).
+See the constants in [manual_labels_manager.py](./src/video_understanding/utils/manual_labels_manager.py) for conventions used (e.g. where the labels are stored, etc.).
 
 ### Local LLM Inference
 For running local LLM models, following additional steps are required.

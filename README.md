@@ -1,4 +1,4 @@
-# Video Summarizer
+# Video Understanding
 
 ## Project Overview
 
@@ -8,7 +8,7 @@ This repository hosts two closely related projects designed to build a scalable 
 
    A DAG-based workflow manager that offers task resumption, caching, logging, error handling, and persistence, ensuring efficient and fault-tolerant execution of machine learning pipelines.
 
-2. **[Video Summarizer](./src/video_summarizer/README.md)**
+2. **[Video Understanding](./src/video_understanding/README.md)**
 
    A video understanding, summarization, and question-answering system that automatically condenses hours of teacher-student sessions into a single concise 5-minute curated highlight.
 
