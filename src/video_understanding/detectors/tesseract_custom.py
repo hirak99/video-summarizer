@@ -7,6 +7,7 @@ import pytesseract  # type: ignore
 
 from . import detection_utils
 
+import typing
 from typing import Iterator, TypedDict
 
 
@@ -40,10 +41,15 @@ class _TextBox:
 def _do_ocr(frame: npt.NDArray[np.uint8]) -> _OcrData:
     gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
     inverted = cv2.bitwise_not(gray)
-    return pytesseract.image_to_data(
-        inverted,
-        output_type=pytesseract.Output.DICT,
-        # config=r"--oem 3 -c tessedit_char_whitelist=0123456789+()- ",
+    return typing.cast(
+        # We expect the return to be of the type we defined.
+        # TODO: Better to use pydantic and model_validate().
+        _OcrData,
+        pytesseract.image_to_data(
+            inverted,
+            output_type=pytesseract.Output.DICT,
+            # config=r"--oem 3 -c tessedit_char_whitelist=0123456789+()- ",
+        ),
     )
 
 
