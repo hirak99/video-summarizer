@@ -19,7 +19,13 @@ class DigestVqa(abstract_vqa.AbstractVqa):
         graph = video_flow_graph.VideoFlowGraph(makeviz=False, dry_run=True)
         graph.persist_graph_for(video_path)
 
-        self._scene_understanding = graph.scene_understanding_result()
+        scene_understanding = graph.scene_understanding_result()
+        if scene_understanding is None:
+            raise ValueError(
+                "No scene_understanding data loaded. Is ENABLE_VISION == False?"
+            )
+        self._scene_understanding = scene_understanding
+
         self._role_aware_caption = graph.role_aware_captions()
 
         # Use self._loaded_model instead of directly accessing this.
@@ -37,7 +43,6 @@ class DigestVqa(abstract_vqa.AbstractVqa):
 
     @override
     def ask(self, time: float, question: str) -> str:
-        assert self._scene_understanding is not None
         assert self._role_aware_caption is not None
 
         caption_for_prompt = prompt_utils.caption_lines_for_prompt(

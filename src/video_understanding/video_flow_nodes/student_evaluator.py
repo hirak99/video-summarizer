@@ -21,7 +21,7 @@ def _student_evaluation_prompt(
     source_file: str,
     task_description: str,
     role_aware_summary: list[role_based_captioner.RoleAwareCaptionT],
-    scene_understanding: vision_processor.SceneListT,
+    scene_understanding: vision_processor.SceneListT | None,
 ) -> list[str]:
     """Stores student evaluations as a json file and returns the path."""
     return templater.fill(
@@ -49,7 +49,8 @@ class StudentEvaluator(process_node.ProcessNode):
         self,
         source_file: str,
         role_aware_summary_file: str,
-        scene_understanding_file: str,
+        # Note: Remove `| None` if we roll out ENABLE_VISION as True.
+        scene_understanding_file: str | None,
         out_file_stem: str,
     ) -> str:
         out_file_name = out_file_stem + FILE_SUFFIX
@@ -59,10 +60,18 @@ class StudentEvaluator(process_node.ProcessNode):
             )
 
         task_description = file_conventions.filename_to_task(source_file)
-        with open(scene_understanding_file, "r") as f:
-            scene_understanding = vision_processor.SceneListT.model_validate_json(
-                f.read()
-            )
+
+        scene_understanding: vision_processor.SceneListT | None = None
+        if video_config.ENABLE_VISION:
+            if scene_understanding_file is None:
+                raise ValueError(
+                    "Vision is enabled, so scene_understanding_file must be provided."
+                )
+            with open(scene_understanding_file, "r") as f:
+                scene_understanding = vision_processor.SceneListT.model_validate_json(
+                    f.read()
+                )
+
         prompt = _student_evaluation_prompt(
             source_file, task_description, role_aware_summary, scene_understanding
         )

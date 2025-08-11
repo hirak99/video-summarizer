@@ -103,6 +103,8 @@ class VideoFlowGraph:
             },
             version=4,
         )
+        if not video_config.ENABLE_VISION:
+            self._vision_process_node = None
         student_evaluate_node = graph.add_node(
             10,
             student_evaluator.StudentEvaluator,
@@ -206,13 +208,16 @@ class VideoFlowGraph:
     def role_aware_captions(self) -> list[role_based_captioner.RoleAwareCaptionT]:
         result = self._role_based_caption_node.result
         if result is None:
-            raise ValueError("Result not found")
+            raise ValueError("Role aware captions not computed")
         with open(result) as f:
             return json.load(f)
 
-    def scene_understanding_result(self) -> vision_processor.SceneListT:
+    def scene_understanding_result(self) -> vision_processor.SceneListT | None:
+        if self._vision_process_node is None:
+            # Will not be initialized if ENABLE_VISION is False.
+            return None
         result = self._vision_process_node.result
         if result is None:
-            raise ValueError("Result not found")
+            raise ValueError("Scene understanding not computed")
         with open(result) as f:
             return vision_processor.SceneListT.model_validate_json(f.read())
