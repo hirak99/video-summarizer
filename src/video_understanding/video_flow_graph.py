@@ -22,7 +22,7 @@ from .video_flow_nodes import vision_processor
 from .video_flow_nodes import voice_separator
 
 
-class VideoFlowExecutor:
+class VideoFlowGraph:
     def __init__(self, *, makeviz: bool, dry_run: bool):
         """Makes the graph but does not execute anything."""
 
@@ -158,7 +158,7 @@ class VideoFlowExecutor:
         self._source_file_const.set("value", video_path)
         self._out_stem_const.set("value", out_stem)
 
-    def process(self, iregex: str | None, limit_files: int):
+    def run(self, iregex: str | None, limit_files: int):
 
         all_files_to_process: list[str] = []
         for dirpath, dirnames, filenames in os.walk(video_config.VIDEOS_DIR):

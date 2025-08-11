@@ -3,15 +3,13 @@ import argparse
 import dotenv
 
 from . import video_config
-from . import video_flow_executor
+from . import video_flow_graph
 from .utils import logging_utils
 
 
 def _main(iregex: str | None, limit_files: int, makeviz: bool, dry_run: bool):
-    video_graph = video_flow_executor.VideoFlowExecutor(
-        makeviz=makeviz, dry_run=dry_run
-    )
-    video_graph.process(iregex, limit_files)
+    video_graph = video_flow_graph.VideoFlowGraph(makeviz=makeviz, dry_run=dry_run)
+    video_graph.run(iregex, limit_files)
 
 
 if __name__ == "__main__":

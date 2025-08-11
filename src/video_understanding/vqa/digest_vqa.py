@@ -1,6 +1,6 @@
 from . import abstract_vqa
 from .. import prompt_templates
-from .. import video_flow_executor
+from .. import video_flow_graph
 from ..llm_service import abstract_llm
 from ..llm_service import llm
 from ..utils import prompt_utils
@@ -16,11 +16,11 @@ class DigestVqa(abstract_vqa.AbstractVqa):
         self._video_path = video_path
         self._maintain_context = maintain_context
 
-        executor = video_flow_executor.VideoFlowExecutor(makeviz=False, dry_run=True)
-        executor.persist_graph_for(video_path)
+        graph = video_flow_graph.VideoFlowGraph(makeviz=False, dry_run=True)
+        graph.persist_graph_for(video_path)
 
-        self._scene_understanding = executor.scene_understanding_result()
-        self._role_aware_caption = executor.role_aware_captions()
+        self._scene_understanding = graph.scene_understanding_result()
+        self._role_aware_caption = graph.role_aware_captions()
 
         # Use self._loaded_model instead of directly accessing this.
         self._model: abstract_llm.AbstractLlm | None = None
