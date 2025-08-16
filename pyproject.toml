@@ -13,6 +13,8 @@ reportUnknownVariableType = "none"
 # Allow **kwargs to be subclassed as expanded.
 reportIncompatibleMethodOverride = "none"
 reportUntypedFunctionDecorator = "error"
+# Allow working on libraries without stubs.
+reportMissingTypeStubs = "none"
 
 pythonVersion = "3.13"
 pythonPlatform = "Linux"
