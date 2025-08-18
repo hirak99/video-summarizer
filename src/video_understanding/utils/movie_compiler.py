@@ -322,9 +322,11 @@ class MovieCompiler:
         start, end = (highlight["start_time"], highlight["end_time"])
         # Add padding to account for fade-in / fade-out effects.
         # Region excludes the end, i.e. [start, end). Especially important if fade_out is 0.
+        fps = source_movie.fps
+        assert isinstance(fps, float)
         start, end = (
             max(0, start - fade_in_time),
-            end - 1 / source_movie.fps / 2 + fade_out_time,
+            end - 1 / fps / 2 + fade_out_time,
         )
         assert isinstance(source_movie.duration, float)
         if end >= source_movie.duration:

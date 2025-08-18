@@ -42,7 +42,6 @@ def main():
         {
             "highlights_log_file": highlight_curate_node,
         },
-        force=True
     )
 
     os.makedirs(_PERSIST_DIR, exist_ok=True)

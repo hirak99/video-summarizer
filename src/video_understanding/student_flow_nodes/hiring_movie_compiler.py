@@ -66,11 +66,15 @@ class HiringMovieCompiler(process_node.ProcessNode):
                 if next_segment.movie == segment.movie:
                     logging.info("Skipping title fade out.")
                     title_fade_out = False
-                    overlap_time = next_segment.evaluation["start"] - segment.evaluation["end"]
+                    overlap_time = (
+                        next_segment.evaluation["start"] - segment.evaluation["end"]
+                    )
                     if overlap_time <= 2 * movie_compiler.DEFAULT_FADE_TIME + _EPSILON:
                         # If the overlap is too long, then there is some error.
                         if overlap_time > 2 * movie_compiler.DEFAULT_FADE_TIME + 1:
-                            raise RuntimeError(f"Overlap time too long: {overlap_time}s")
+                            raise RuntimeError(
+                                f"Overlap time too long: {overlap_time}s"
+                            )
                         logging.info("Lowering fade out time.")
                         next_segment.evaluation["start"] = segment.evaluation["end"]
                         fade_out_time = 0.0
