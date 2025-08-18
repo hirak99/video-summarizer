@@ -11,6 +11,8 @@ from ..video_flow_nodes import ocr_detector
 
 from typing import override
 
+_EPSILON = 1e-3
+
 
 class HiringMovieCompiler(process_node.ProcessNode):
 
@@ -30,6 +32,7 @@ class HiringMovieCompiler(process_node.ProcessNode):
     ) -> None:
         """Compile the chosen highlights into a movie."""
         compiler = movie_compiler.MovieCompiler()
+
         for index, segment in enumerate(highlights):
             logging.info(f"{index + 1} of {len(highlights)}: {segment.movie}")
             # title = video_globals.metadata_for_file(segment.path).description
@@ -50,10 +53,44 @@ class HiringMovieCompiler(process_node.ProcessNode):
                 "captions": segment.captions,
             }
 
-            last_path = highlights[index - 1].movie if index > 0 else None
-            next_path = (
-                highlights[index + 1].movie if index + 1 < len(highlights) else None
+            # Following two blocks ensure -
+            # 1. Title fade is skipped if the same movie plays consecutively.
+            # 2. Fade is removed if there is no gap between segments.
+            # Note: Reducing fade time to 0 causes a slight but audible glitch.
+            title_fade_out = True
+            fade_out_time = movie_compiler.DEFAULT_FADE_TIME
+            next_segment = (
+                highlights[index + 1] if index + 1 < len(highlights) else None
             )
+            if next_segment is not None:
+                if next_segment.movie == segment.movie:
+                    logging.info("Skipping title fade out.")
+                    title_fade_out = False
+                    overlap_time = next_segment.evaluation["start"] - segment.evaluation["end"]
+                    if overlap_time <= 2 * movie_compiler.DEFAULT_FADE_TIME + _EPSILON:
+                        # If the overlap is too long, then there is some error.
+                        if overlap_time > 2 * movie_compiler.DEFAULT_FADE_TIME + 1:
+                            raise RuntimeError(f"Overlap time too long: {overlap_time}s")
+                        logging.info("Lowering fade out time.")
+                        next_segment.evaluation["start"] = segment.evaluation["end"]
+                        fade_out_time = 0.0
+
+            title_fade_in = True
+            fade_in_time = movie_compiler.DEFAULT_FADE_TIME
+            last_segment = highlights[index - 1] if index > 0 else None
+            if last_segment is not None:
+                if last_segment.movie == segment.movie:
+                    logging.info("Skipping title fade in.")
+                    title_fade_in = False
+                    # The time should have already been adjusted to match.
+                    if (
+                        abs(
+                            last_segment.evaluation["end"] - segment.evaluation["start"]
+                        )
+                        <= _EPSILON
+                    ):
+                        logging.info("Lowering fade in time.")
+                        fade_in_time = 0.0
 
             out_stem = misc_utils.get_output_stem(
                 segment.movie, video_config.VIDEOS_DIR, video_config.WORKSPACE_DIR
@@ -65,8 +102,10 @@ class HiringMovieCompiler(process_node.ProcessNode):
                 source_movie_file=segment.movie,
                 title=title,
                 highlight=highlight,
-                title_fade_in=segment.movie != last_path,
-                title_fade_out=segment.movie != next_path,
+                title_fade_in=title_fade_in,
+                title_fade_out=title_fade_out,
+                fade_in_time=fade_in_time,
+                fade_out_time=fade_out_time,
                 temp_clip_hash=segment.fingerprint,  # To invalidate any cached clips.
                 blur_json_file=out_stem + ocr_detector.FILE_SUFFIX,
                 frame_processor=annotation_blur.process_frame,

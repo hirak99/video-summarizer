@@ -25,7 +25,7 @@ def main():
             "out_dir": str(_OUTDIR),
             "log_dir": str(_PERSIST_DIR),
         },
-        version=3,
+        version=4,
     )
     eval_template_node = graph.add_node(
         2,
@@ -42,6 +42,7 @@ def main():
         {
             "highlights_log_file": highlight_curate_node,
         },
+        force=True
     )
 
     os.makedirs(_PERSIST_DIR, exist_ok=True)

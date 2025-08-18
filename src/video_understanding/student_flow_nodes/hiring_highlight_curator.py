@@ -213,7 +213,7 @@ def _choose_highlights(highlights: list[HighlightData]) -> list[HighlightData]:
         highlight = remaining.pop(0)
         chosen.append(highlight)
         total_duration = (
-            total_duration + highlight.duration + 2 * movie_compiler.FADE_TIME
+            total_duration + highlight.duration + 2 * movie_compiler.DEFAULT_FADE_TIME
         )
         session_durations[highlight.movie] += highlight.duration
 

@@ -25,7 +25,7 @@ _TEXT_COLOR = (255, 165, 0)  # Orange.
 _BAR_COLOR = tuple(int(c * 0.5) for c in _TEXT_COLOR)
 
 # Number of seconds added to each end of a clip for fading.
-FADE_TIME = 1.0
+DEFAULT_FADE_TIME = 1.0
 
 # 1 worker ~15 it/s, 4 workers ~28 it/s combined.
 _HIGHLIGHT_MAX_WORKERS = 4
@@ -254,6 +254,8 @@ class MovieCompiler:
         highlight: HighlightsT,
         title_fade_in: bool,
         title_fade_out: bool,
+        fade_in_time: float = DEFAULT_FADE_TIME,
+        fade_out_time: float = DEFAULT_FADE_TIME,
         temp_clip_hash: str | None = None,
         blur_json_file: str | None = None,
         # Optional hook to do arbitrary drawing, blurring, or other processing on the frame.
@@ -286,6 +288,8 @@ class MovieCompiler:
             highlight=highlight,
             title_fade_in=title_fade_in,
             title_fade_out=title_fade_out,
+            fade_in_time=fade_in_time,
+            fade_out_time=fade_out_time,
             output_file=output_file,
             blur_json_file=blur_json_file,
             frame_processor=frame_processor,
@@ -299,6 +303,8 @@ class MovieCompiler:
         highlight: HighlightsT,
         title_fade_in: bool,
         title_fade_out: bool,
+        fade_in_time: float,
+        fade_out_time: float,
         output_file: str,
         blur_json_file: str | None = None,
         frame_processor: (
@@ -315,7 +321,11 @@ class MovieCompiler:
         logging.info(f"Source movie duration: {source_movie.duration}")
         start, end = (highlight["start_time"], highlight["end_time"])
         # Add padding to account for fade-in / fade-out effects.
-        start, end = (max(0, start - FADE_TIME), end + FADE_TIME)
+        # Region excludes the end, i.e. [start, end). Especially important if fade_out is 0.
+        start, end = (
+            max(0, start - fade_in_time),
+            end - 1 / source_movie.fps / 2 + fade_out_time,
+        )
         assert isinstance(source_movie.duration, float)
         if end >= source_movie.duration:
             logging.warning(f"Truncating {end=} to {source_movie.duration=}")
@@ -346,10 +356,10 @@ class MovieCompiler:
             )
         )
 
-        fadein = moviepy.video.fx.FadeIn(FADE_TIME)  # type: ignore
-        fadeout = moviepy.video.fx.FadeOut(FADE_TIME)  # type: ignore
-        afadein = moviepy.audio.fx.AudioFadeIn(FADE_TIME)  # type: ignore
-        afadeout = moviepy.audio.fx.AudioFadeOut(FADE_TIME)  # type: ignore
+        fadein = moviepy.video.fx.FadeIn(fade_in_time)  # type: ignore
+        fadeout = moviepy.video.fx.FadeOut(fade_out_time)  # type: ignore
+        afadein = moviepy.audio.fx.AudioFadeIn(fade_in_time)  # type: ignore
+        afadeout = moviepy.audio.fx.AudioFadeOut(fade_out_time)  # type: ignore
         clip = fadein.apply(clip)
         clip = fadeout.apply(clip)
         clip = afadein.apply(clip)

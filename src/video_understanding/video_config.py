@@ -27,7 +27,8 @@ from .utils import file_conventions
 # 7.2 - Split caption into as many lines as needed.
 # 7.3 - Implement fix for Whisper's rolling captions.
 # 7.4 - Scene understanding implementation done.
-VERSION = "7.4"
+# 7.4.1 - Skip fading for consecutive clips.
+VERSION = "7.4.1"
 
 _HOME = pathlib.Path(os.environ["HOME"])
 VIDEOS_DIR = _HOME / "data/videos"
