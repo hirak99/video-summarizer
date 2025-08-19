@@ -55,7 +55,7 @@ def _trim_end(caption: transcriber.TranscriptionT, new_end: float):
     caption["words"][-1]["end"] = new_end
 
 
-class TranscriptionCorrecter(process_node.ProcessNode):
+class TranscriptionRefiner(process_node.ProcessNode):
     @override
     def process(
         self,

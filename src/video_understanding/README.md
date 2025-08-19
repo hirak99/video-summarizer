@@ -6,7 +6,7 @@ Specific application demonstrated here assumes the videos are of teacher-student
 
 This uses the [flow](../flow/README.md) architecture.
 
-In particulare we use two different flows here.
+In particular we use two different flows here.
 
 ## Video Flow
 A flow that is run to process each video.
@@ -21,9 +21,9 @@ flowchart TD;
     A -- audio --> Diarization["(pyannote Local)<br>"Speaker Diarization]
     A -- audio --> Captioning["(Whisper Local)<br>"Captioning]
     Diarization --> D
-    Diarization --> CorrectCaptions
-    Captioning --> CorrectCaptions[Correct Captions]
-    CorrectCaptions --> D[Speaker Assignment]
+    Diarization --> RefineCaptions
+    Captioning --> RefineCaptions[Refine Captions]
+    RefineCaptions --> D[Speaker Assignment]
     D --> F["(OpenAI o4-mini)<br>"Speaker Role Identification];
     F --> K[Role Aware Captions]
     D --> K

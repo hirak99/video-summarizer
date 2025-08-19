@@ -18,7 +18,7 @@ from .video_flow_nodes import speaker_assigner
 from .video_flow_nodes import student_evaluator
 from .video_flow_nodes import student_movie_compiler
 from .video_flow_nodes import transcriber
-from .video_flow_nodes import transcription_correcter
+from .video_flow_nodes import transcription_refiner
 from .video_flow_nodes import vision_processor
 from .video_flow_nodes import voice_separator
 
@@ -31,7 +31,7 @@ class VideoFlowGraph:
 
         # Don't re-use purged node ids.
         # Next Id: 15
-        # 3 is deprecated.
+        # Id(s) deprecated: 3.
         self._source_file_const = graph.add_node(
             0, process_node.constant("Source Video"), {"value": ""}
         )
@@ -54,9 +54,9 @@ class VideoFlowGraph:
             },
             invalidate_before=1751002018,
         )
-        transcription_corrected_node = graph.add_node(
+        transcription_refine_node = graph.add_node(
             14,
-            transcription_correcter.TranscriptionCorrecter,
+            transcription_refiner.TranscriptionRefiner,
             {
                 "captions_file": transcribe_node,
                 "diarization_file": diarize_node,
@@ -67,7 +67,7 @@ class VideoFlowGraph:
             6,
             speaker_assigner.SpeakerAssigner,
             {
-                "captions_file": transcription_corrected_node,
+                "captions_file": transcription_refine_node,
                 "diarization_file": diarize_node,
                 "out_file_stem": self._out_stem_const,
             },
