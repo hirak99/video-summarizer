@@ -5,6 +5,7 @@ import os
 import subprocess
 
 from pyannote import audio  # type: ignore
+import pydantic
 import torch
 
 from .. import video_config
@@ -16,6 +17,17 @@ _HF_AUTH_ENV = "HUGGING_FACE_AUTH"
 
 # Since we know there are two speakers, we can use this info to guide diarization.
 _NUM_SPEAKERS = 2
+
+
+# This is type of saved data.
+# TODO: Add validation before saving.
+# TODO: Use in speaker_assigner.py.
+class _Diarization(pydantic.BaseModel):
+    interval: tuple[float, float]
+    speaker: str
+
+
+DiarizationListT = pydantic.RootModel[list[_Diarization]]
 
 
 @contextlib.contextmanager

@@ -15,13 +15,15 @@ flowchart TD;
     A[Video Input]
     A -- video --> M[PII Detection]
     A --> I
-    C --> I[Visualize for Auditing]
+    Diarization --> I[Visualize for Auditing]
     D --> I
     F --> I
-    A -- audio --> C["(pyannote Local)<br>"Speaker Diarization]
-    A -- audio --> B["(Whisper Local)<br>"Captioning]
-    C --> D
-    B --> D[Speaker Assignment]
+    A -- audio --> Diarization["(pyannote Local)<br>"Speaker Diarization]
+    A -- audio --> Captioning["(Whisper Local)<br>"Captioning]
+    Diarization --> D
+    Diarization --> CorrectCaptions
+    Captioning --> CorrectCaptions[Correct Captions]
+    CorrectCaptions --> D[Speaker Assignment]
     D --> F["(OpenAI o4-mini)<br>"Speaker Role Identification];
     F --> K[Role Aware Captions]
     D --> K

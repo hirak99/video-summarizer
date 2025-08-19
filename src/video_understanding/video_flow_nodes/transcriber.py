@@ -172,7 +172,7 @@ class WhisperTranscribe(process_node.ProcessNode):
     # 1. Transcribe.
     # 2. Detect where it went bad. If not, return.
     # 3. Transcribe from where it went bad, and repeat.
-    def _transcribe(self, local_path: str) -> list[TranscriptionT]:
+    def _transcribe_with_guards(self, local_path: str) -> list[TranscriptionT]:
         start_time: float = 0.0
         transcription_so_far: list[TranscriptionT] = []
         cut_reason: str | None = None
@@ -207,7 +207,7 @@ class WhisperTranscribe(process_node.ProcessNode):
                     transcription, start_time
                 )
                 # Since timestamp is not 0, this was a cut.
-                # Store the reson for the cut, i.e. what it fixes.
+                # Store the reason for the cut, i.e. what it fixes.
                 if transcription:
                     assert cut_reason is not None
                     transcription[0]["cut_reason"] = cut_reason
@@ -231,7 +231,7 @@ class WhisperTranscribe(process_node.ProcessNode):
     def process(self, source_file: str, out_file_stem: str) -> str:
         out_file = out_file_stem + ".transcription.json"
         with voice_separator.get_wav(source_file) as source_file:
-            transcription = self._transcribe(source_file)
+            transcription = self._transcribe_with_guards(source_file)
         with open(out_file, "w") as f:
             json.dump(transcription, f)
         return out_file
