@@ -25,7 +25,7 @@ _TEXT_COLOR = (255, 165, 0)  # Orange.
 _BAR_COLOR = tuple(int(c * 0.5) for c in _TEXT_COLOR)
 
 # Number of seconds added to each end of a clip for fading.
-DEFAULT_FADE_TIME = 1.0
+DEFAULT_FADE_TIME = 0.5
 
 # 1 worker ~15 it/s, 4 workers ~28 it/s combined.
 _HIGHLIGHT_MAX_WORKERS = 4

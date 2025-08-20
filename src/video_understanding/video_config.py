@@ -29,7 +29,7 @@ from .utils import file_conventions
 # 7.4 - Scene understanding implementation done.
 # 7.4.1 - Skip fading for consecutive clips.
 # 7.5 - Correct long (initial) silence in some Whisper transcriptions.
-# 7.6 - Prompt tweak to prioritize teacher's response in clarifications.
+# 7.6 - Prompt tweak to prioritize teacher's response in clarifications. Also reduced the fade time from 1.0s to 0.5s.
 VERSION = "7.6"
 
 _HOME = pathlib.Path(os.environ["HOME"])
