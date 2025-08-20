@@ -17,7 +17,7 @@ STUDENT_EVAL_PROMPT_TEMPLATE: list[str] = [
     "- Any comment on weakness must be positive and supportive for the student.",
     "- For positives, check if student articulated skills, if the teacher praised, instances of wit, if the student took feedback well when given, or demonstrated relevant abilities in any other way.",
     (
-        "- Only include student clarifications if they lead to or reveal a clear demonstration of skill, misunderstanding, or a learning moment."
+        "- If you include student clarifications, you must include teacher's response. Include only if they lead to or reveal a clear demonstration of skill, misunderstanding, or a learning moment."
         " Do not include routine confirmations or procedural clarifications unless they result in a meaningful exchange or correction."
     ),
     (

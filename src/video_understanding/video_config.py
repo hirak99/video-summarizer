@@ -29,7 +29,8 @@ from .utils import file_conventions
 # 7.4 - Scene understanding implementation done.
 # 7.4.1 - Skip fading for consecutive clips.
 # 7.5 - Correct long (initial) silence in some Whisper transcriptions.
-VERSION = "7.5"
+# 7.6 - Prompt tweak to prioritize teacher's response in clarifications.
+VERSION = "7.6"
 
 _HOME = pathlib.Path(os.environ["HOME"])
 VIDEOS_DIR = _HOME / "data/videos"
