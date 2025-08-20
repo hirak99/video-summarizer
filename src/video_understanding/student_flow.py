@@ -26,10 +26,12 @@ def main():
             "log_dir": str(_PERSIST_DIR),
         },
         version=4,
+        # TODO: Instead of always forcing, should check if any of the sources in video_flow changed.
+        force=True,
     )
     eval_template_node = graph.add_node(
         2,
-        eval_template_maker.EvalTermplateMaker,
+        eval_template_maker.EvalTemplateMaker,
         {
             "highlights_log_file": highlight_curate_node,
             "out_dir": str(_OUTDIR),

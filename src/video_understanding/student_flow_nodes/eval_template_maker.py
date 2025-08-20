@@ -36,7 +36,7 @@ def _auto_eval_prompt(highlight: hhc.HighlightData) -> list[str]:
     )
 
 
-class EvalTermplateMaker(process_node.ProcessNode):
+class EvalTemplateMaker(process_node.ProcessNode):
 
     @override
     def process(self, highlights_log_file: str, out_dir: str) -> str:
