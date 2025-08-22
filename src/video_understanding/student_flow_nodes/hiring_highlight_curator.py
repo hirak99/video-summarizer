@@ -8,6 +8,7 @@ import os
 
 import pydantic
 
+from . import compile_options
 from .. import video_config
 from .. import video_flow_graph
 from ...domain_specific import manual_overrides
@@ -248,7 +249,18 @@ class HighlightCurator(process_node.ProcessNode):
             )
 
             captions_file = out_stem + role_based_captioner.FILE_SUFFIX
-            with open(self._video_graph.student_eval_hiring_node.result, "r") as file:
+
+            match compile_options.COMPILATION_TYPE:
+                case compile_options.COMPILATION_TYPE.HIRING:
+                    eval_node = self._video_graph.student_eval_hiring_node
+                case compile_options.COMPILATION_TYPE.RESUME:
+                    eval_node = self._video_graph.student_eval_resume_node
+                case _:
+                    raise ValueError(
+                        f"Unknown compilation type: {compile_options.COMPILATION_TYPE}"
+                    )
+
+            with open(eval_node.result, "r") as file:
                 evaluations: list[student_eval_type.StudentEvalT] = json.load(file)
                 for evaluation in evaluations:
                     eval_segments.append(
@@ -259,7 +271,10 @@ class HighlightCurator(process_node.ProcessNode):
                         )
                     )
 
-        out_file_basename = f"{file_search_term}_hiring_v{video_config.VERSION}"
+        movie_type_str = compile_options.COMPILATION_TYPE.value
+        out_file_basename = (
+            f"{file_search_term}_{movie_type_str}_v{video_config.VERSION}"
+        )
 
         logging.info(f"# highlights curated by LLM: {len(eval_segments)}")
         highlights = _choose_highlights(eval_segments)
