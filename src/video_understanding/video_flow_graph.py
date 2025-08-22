@@ -17,7 +17,6 @@ from .video_flow_nodes import role_based_captioner
 from .video_flow_nodes import role_identifier
 from .video_flow_nodes import speaker_assigner
 from .video_flow_nodes import student_evaluator
-from .video_flow_nodes import student_movie_compiler
 from .video_flow_nodes import transcriber
 from .video_flow_nodes import transcription_refiner
 from .video_flow_nodes import vision_processor
@@ -32,7 +31,7 @@ class VideoFlowGraph:
 
         # Don't re-use purged node ids.
         # Next Id: 15
-        # Id(s) deprecated: 3.
+        # Id(s) deprecated: 3, 11.
         self._source_file_const = graph.add_node(
             0, process_node.constant("Source Video"), {"value": ""}
         )
@@ -129,16 +128,6 @@ class VideoFlowGraph:
             },
             version=4,
         )
-        student_movie_compile_node = graph.add_node(
-            11,
-            student_movie_compiler.StudentMovieCompiler,
-            {
-                "source_file": self._source_file_const,
-                "highlights_file": self.student_eval_hiring_node,
-                "out_file_stem": self._out_stem_const,
-            },
-        )
-        del student_movie_compile_node  # TBR
         ocr_detect_node = graph.add_node(
             12,
             ocr_detector.OcrDetector,
