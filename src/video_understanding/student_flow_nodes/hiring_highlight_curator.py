@@ -248,7 +248,7 @@ class HighlightCurator(process_node.ProcessNode):
             )
 
             captions_file = out_stem + role_based_captioner.FILE_SUFFIX
-            with open(self._video_graph.student_evaluate_node.result, "r") as file:
+            with open(self._video_graph.student_eval_hiring_node.result, "r") as file:
                 evaluations: list[student_eval_type.StudentEvalT] = json.load(file)
                 for evaluation in evaluations:
                     eval_segments.append(

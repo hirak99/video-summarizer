@@ -4,6 +4,7 @@ import logging
 import os
 import re
 
+from . import prompt_templates
 from . import video_config
 from ..domain_specific import domain_config
 from ..flow import internal_graph_node
@@ -115,14 +116,16 @@ class VideoFlowGraph:
         )
         if not video_config.ENABLE_VISION:
             self._vision_process_node = None
-        self.student_evaluate_node = graph.add_node(
+        self.student_eval_hiring_node = graph.add_node(
             10,
             student_evaluator.StudentEvaluator,
             {
+                "prompt_template": prompt_templates.STUDENT_EVAL_PROMPT_TEMPLATE,
                 "source_file": self._source_file_const,
                 "role_aware_summary_file": self._role_based_caption_node,
                 "scene_understanding_file": self._vision_process_node,
                 "out_file_stem": self._out_stem_const,
+                "out_file_suffix": ".student_hiring.json",
             },
             version=4,
         )
@@ -131,7 +134,7 @@ class VideoFlowGraph:
             student_movie_compiler.StudentMovieCompiler,
             {
                 "source_file": self._source_file_const,
-                "highlights_file": self.student_evaluate_node,
+                "highlights_file": self.student_eval_hiring_node,
                 "out_file_stem": self._out_stem_const,
             },
         )
@@ -148,7 +151,7 @@ class VideoFlowGraph:
 
         # Final target node(s) for all files.
         final_nodes: list[internal_graph_node.AddedNode] = [
-            self.student_evaluate_node,
+            self.student_eval_hiring_node,
             ocr_detect_node,
         ]
         if makeviz:

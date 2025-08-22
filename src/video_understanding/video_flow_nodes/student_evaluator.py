@@ -3,7 +3,6 @@ import json
 
 from . import role_based_captioner
 from . import vision_processor
-from .. import prompt_templates
 from .. import video_config
 from ...flow import process_node
 from ..llm_service import llm
@@ -14,10 +13,9 @@ from ..utils import templater
 
 from typing import override
 
-_FILE_SUFFIX = ".student_eval.json"
-
 
 def _student_evaluation_prompt(
+    prompt_template: list[str],
     source_file: str,
     task_description: str,
     role_aware_summary: list[role_based_captioner.RoleAwareCaptionT],
@@ -25,7 +23,7 @@ def _student_evaluation_prompt(
 ) -> list[str]:
     """Stores student evaluations as a json file and returns the path."""
     return templater.fill(
-        prompt_templates.STUDENT_EVAL_PROMPT_TEMPLATE,
+        prompt_template,
         {
             "task_description": task_description,
             "caption_lines": "\n".join(
@@ -47,13 +45,28 @@ class StudentEvaluator(process_node.ProcessNode):
     @override
     def process(
         self,
+        prompt_template: list[str],
         source_file: str,
         role_aware_summary_file: str,
-        # Note: Remove `| None` if we roll out ENABLE_VISION as True.
+        # Note: Remove `| None` if we roll out ENABLE_VISION as True. For that we need to ensure the presence of manual labels.
         scene_understanding_file: str | None,
         out_file_stem: str,
+        out_file_suffix: str,
     ) -> str:
-        out_file_name = out_file_stem + _FILE_SUFFIX
+        """Evaluates a video for different purposes as indicated in the params.
+
+        Args:
+            prompt_template: The prompt can vary based on what this node is required to evaluate, for example a prompt for student hiring, a different prompt for student resume.
+            source_file: The video file.
+            role_aware_summary_file: Transcriptions from a prior node.
+            scene_understanding_file: Scene understanding from a prior node.
+            out_file_stem: The output file name stem. Changes based on the video being processed.
+            out_file_suffix: The output file name suffix. Should be a constant for the node, but different nodes with different prompts should have different suffixes.
+
+        Returns:
+            Full path of the json file with output.
+        """
+        out_file_name = out_file_stem + out_file_suffix
         with open(role_aware_summary_file, "r") as f:
             role_aware_summary: list[role_based_captioner.RoleAwareCaptionT] = (
                 json.load(f)
@@ -73,7 +86,11 @@ class StudentEvaluator(process_node.ProcessNode):
                 )
 
         prompt = _student_evaluation_prompt(
-            source_file, task_description, role_aware_summary, scene_understanding
+            prompt_template=prompt_template,
+            source_file=source_file,
+            task_description=task_description,
+            role_aware_summary=role_aware_summary,
+            scene_understanding=scene_understanding,
         )
 
         # Current date-time as "yyyymmdd-hhmmss".
