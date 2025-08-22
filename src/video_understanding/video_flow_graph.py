@@ -30,7 +30,7 @@ class VideoFlowGraph:
         graph = process_graph.ProcessGraph(dry_run=dry_run)
 
         # Don't re-use purged node ids.
-        # Next Id: 15
+        # Next Id: 16
         # Id(s) deprecated: 3, 11.
         self._source_file_const = graph.add_node(
             0, process_node.constant("Source Video"), {"value": ""}
@@ -128,6 +128,18 @@ class VideoFlowGraph:
             },
             version=4,
         )
+        self.student_eval_resume_node = graph.add_node(
+            15,
+            student_evaluator.StudentEvaluator,
+            {
+                "prompt_template": prompt_templates.STUDENT_RESUME_PROMPT_TEMPLATE,
+                "source_file": self._source_file_const,
+                "role_aware_summary_file": self._role_based_caption_node,
+                "scene_understanding_file": self._vision_process_node,
+                "out_file_stem": self._out_stem_const,
+                "out_file_suffix": ".student_resume.json",
+            },
+        )
         ocr_detect_node = graph.add_node(
             12,
             ocr_detector.OcrDetector,
@@ -141,6 +153,7 @@ class VideoFlowGraph:
         # Final target node(s) for all files.
         final_nodes: list[internal_graph_node.AddedNode] = [
             self.student_eval_hiring_node,
+            self.student_eval_resume_node,
             ocr_detect_node,
         ]
         if makeviz:
