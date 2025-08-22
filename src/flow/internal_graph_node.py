@@ -66,6 +66,7 @@ class AddedNode:
 
     @property
     def result(self) -> Any:
+        """Result accessor. Not often needed since graph.run() returns result."""
         return self._result
 
     # Control access of this; because accessing this will initialize the node.

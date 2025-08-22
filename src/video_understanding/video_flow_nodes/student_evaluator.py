@@ -14,7 +14,7 @@ from ..utils import templater
 
 from typing import override
 
-FILE_SUFFIX = ".student_eval.json"
+_FILE_SUFFIX = ".student_eval.json"
 
 
 def _student_evaluation_prompt(
@@ -53,7 +53,7 @@ class StudentEvaluator(process_node.ProcessNode):
         scene_understanding_file: str | None,
         out_file_stem: str,
     ) -> str:
-        out_file_name = out_file_stem + FILE_SUFFIX
+        out_file_name = out_file_stem + _FILE_SUFFIX
         with open(role_aware_summary_file, "r") as f:
             role_aware_summary: list[role_based_captioner.RoleAwareCaptionT] = (
                 json.load(f)

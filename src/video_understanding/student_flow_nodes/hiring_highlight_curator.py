@@ -9,6 +9,7 @@ import os
 import pydantic
 
 from .. import video_config
+from .. import video_flow_graph
 from ...domain_specific import manual_overrides
 from ...flow import process_node
 from ..utils import file_conventions
@@ -16,7 +17,6 @@ from ..utils import misc_utils
 from ..utils import movie_compiler
 from ..video_flow_nodes import role_based_captioner
 from ..video_flow_nodes import student_eval_type
-from ..video_flow_nodes import student_evaluator
 
 from typing import override
 
@@ -227,6 +227,10 @@ def _choose_highlights(highlights: list[HighlightData]) -> list[HighlightData]:
 
 class HighlightCurator(process_node.ProcessNode):
 
+    def __init__(self):
+        # The graph will be used to access processed results for individual videos.
+        self._video_graph = video_flow_graph.VideoFlowGraph(makeviz=False, dry_run=True)
+
     @override
     def process(self, file_search_term: str, log_dir: str, out_dir: str) -> str:
         file_glob = video_config.all_video_files(
@@ -235,21 +239,26 @@ class HighlightCurator(process_node.ProcessNode):
         # logging.info(f"Files: {file_glob}")
 
         eval_segments: list[HighlightData] = []
-        for fname in file_glob:
+        for video_fname in file_glob:
+            # Load results for this video, to get some output filenames.
+            self._video_graph.persist_graph_for(video_fname)
+
             out_stem = misc_utils.get_output_stem(
-                fname, video_config.VIDEOS_DIR, video_config.WORKSPACE_DIR
+                video_fname, video_config.VIDEOS_DIR, video_config.WORKSPACE_DIR
             )
+
             captions_file = out_stem + role_based_captioner.FILE_SUFFIX
-            with open(out_stem + student_evaluator.FILE_SUFFIX, "r") as file:
+            with open(self._video_graph.student_evaluate_node.result, "r") as file:
                 evaluations: list[student_eval_type.StudentEvalT] = json.load(file)
                 for evaluation in evaluations:
                     eval_segments.append(
                         HighlightData(
-                            movie=fname,
+                            movie=video_fname,
                             captions_file=captions_file,
                             evaluation=evaluation,
                         )
                     )
+
         out_file_basename = f"{file_search_term}_hiring_v{video_config.VERSION}"
 
         logging.info(f"# highlights curated by LLM: {len(eval_segments)}")

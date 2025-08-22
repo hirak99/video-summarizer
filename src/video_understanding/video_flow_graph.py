@@ -115,7 +115,7 @@ class VideoFlowGraph:
         )
         if not video_config.ENABLE_VISION:
             self._vision_process_node = None
-        student_evaluate_node = graph.add_node(
+        self.student_evaluate_node = graph.add_node(
             10,
             student_evaluator.StudentEvaluator,
             {
@@ -131,7 +131,7 @@ class VideoFlowGraph:
             student_movie_compiler.StudentMovieCompiler,
             {
                 "source_file": self._source_file_const,
-                "highlights_file": student_evaluate_node,
+                "highlights_file": self.student_evaluate_node,
                 "out_file_stem": self._out_stem_const,
             },
         )
@@ -148,7 +148,7 @@ class VideoFlowGraph:
 
         # Final target node(s) for all files.
         final_nodes: list[internal_graph_node.AddedNode] = [
-            student_evaluate_node,
+            self.student_evaluate_node,
             ocr_detect_node,
         ]
         if makeviz:
