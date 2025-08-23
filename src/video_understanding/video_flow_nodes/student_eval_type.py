@@ -1,4 +1,5 @@
 import enum
+
 from typing import Literal, TypedDict
 
 

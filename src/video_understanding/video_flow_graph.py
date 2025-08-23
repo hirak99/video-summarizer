@@ -11,12 +11,12 @@ from ..flow import process_graph
 from ..flow import process_node
 from .utils import misc_utils
 from .video_flow_nodes import caption_visualizer
+from .video_flow_nodes import highlights_selector
 from .video_flow_nodes import ocr_detector
 from .video_flow_nodes import role_based_captioner
 from .video_flow_nodes import role_identifier
 from .video_flow_nodes import speaker_assigner
 from .video_flow_nodes import student_eval_type
-from .video_flow_nodes import highlights_selector
 from .video_flow_nodes import transcriber
 from .video_flow_nodes import transcription_refiner
 from .video_flow_nodes import vision_processor
