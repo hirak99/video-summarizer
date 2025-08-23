@@ -51,10 +51,12 @@ class AddedNode:
     # Set to true if any dependant nodes used this, and an override changed the value.
     _was_overridden_in_dependancy: bool = False
 
-    # Note: lru_cache does not work since this is not hashable.
-    _result: Any = None
+    # Note: Do not set the following values outside the core flow architecture classes.
+    result: Any = None
     _result_version: int = 0
-    _result_timestamp: float | None = None
+    # When was this result computed.
+    result_timestamp: float | None = None
+    # How long did the computation take.
     _time: float | None = None
 
     # Lazy init this only if needed.
@@ -62,12 +64,7 @@ class AddedNode:
     _lazy_node: process_node.ProcessNode | None = None
 
     def has_result(self) -> bool:
-        return self._result_timestamp is not None
-
-    @property
-    def result(self) -> Any:
-        """Result accessor. Not often needed since graph.run() returns result."""
-        return self._result
+        return self.result_timestamp is not None
 
     # Control access of this; because accessing this will initialize the node.
     @property
@@ -81,8 +78,8 @@ class AddedNode:
         return self.node_class.name()
 
     def reset(self):
-        self._result = None
-        self._result_timestamp = None
+        self.result = None
+        self.result_timestamp = None
         self._time = None
 
     def release_resources(self):
@@ -102,9 +99,9 @@ class AddedNode:
     def to_persist(self) -> dict[str, Any]:
         result = {
             "name": self.name,
-            "output": self._result,
+            "output": self.result,
             "meta": {
-                "output_ts": self._result_timestamp,
+                "output_ts": self.result_timestamp,
                 "time": self._time,
             },
         }
@@ -120,15 +117,15 @@ class AddedNode:
                 f"Node {self.id} has changed from {saved_result['name']!r} to {self.name!r}. "
                 "Attempting to load anyway."
             )
-        self._result = saved_result["output"]
+        self.result = saved_result["output"]
         # Note that the saved version is not the .version, it is ._result_version.
         if "version" in saved_result:
             self._result_version = saved_result["version"]
         # TODO: Obsolete, delete this.
         if "output_ts" in saved_result:
-            self._result_timestamp = saved_result["output_ts"]
+            self.result_timestamp = saved_result["output_ts"]
         if "meta" in saved_result:
-            self._result_timestamp = saved_result["meta"]["output_ts"]
+            self.result_timestamp = saved_result["meta"]["output_ts"]
             self._time = saved_result["meta"]["time"]
             if "overriden" in saved_result["meta"]:
                 self._was_overridden_in_dependancy = saved_result["meta"]["overriden"]
@@ -137,9 +134,9 @@ class AddedNode:
     def _overriden_result(self) -> Any:
         """Returns result with any manual overrides if applicable."""
         if self.manual_override_func is None:
-            return self._result
-        new_result = self.manual_override_func(self._result, **self._filled_in_inputs)
-        if self._result != new_result:
+            return self.result
+        new_result = self.manual_override_func(self.result, **self._filled_in_inputs)
+        if self.result != new_result:
             self._was_overridden_in_dependancy = True
             logging.warning(
                 f"Overriding has changed the output of {self.id} ({self.name})"
@@ -178,11 +175,11 @@ class AddedNode:
         kwargs = self._filled_in_inputs
         start = time.time()
         if self.dry_run:
-            self._result = None
+            self.result = None
         else:
-            self._result = self._node.process(**kwargs)
+            self.result = self._node.process(**kwargs)
         self._time = time.time() - start
-        self._result_timestamp = datetime.datetime.now().timestamp()
+        self.result_timestamp = datetime.datetime.now().timestamp()
         self._result_version = self.version
         self.on_result(self)
 
@@ -190,15 +187,15 @@ class AddedNode:
         if not self.has_result():
             logging.info(f"Needs update ({self.id}): {self.name} because no result")
             return True
-        assert self._result_timestamp is not None  # Because self.has_result() is True.
+        assert self.result_timestamp is not None  # Because self.has_result() is True.
         if self._result_version != self.version:
             logging.info(
                 f"Needs update ({self.id}): {self.name} because version {self._result_version} < {self.version}"
             )
             return True
-        if self._result_timestamp < self.invalidate_before:
+        if self.result_timestamp < self.invalidate_before:
             logging.info(
-                f"Needs update ({self.id}): {self.name} because timestamp {self._result_timestamp} < {self.invalidate_before}"
+                f"Needs update ({self.id}): {self.name} because timestamp {self.result_timestamp} < {self.invalidate_before}"
             )
             return True
 
@@ -207,12 +204,12 @@ class AddedNode:
             del input_name  # Unused
             if isinstance(input_val, AddedNode):
                 if (
-                    input_val._result_timestamp is not None
-                    and input_val._result_timestamp > self._result_timestamp
+                    input_val.result_timestamp is not None
+                    and input_val.result_timestamp > self.result_timestamp
                 ):
                     logging.info(
                         f"Needs update ({self.id}) {self.name} because dependency is newer:"
-                        f" {input_val._result_timestamp} > {self._result_timestamp}"
+                        f" {input_val.result_timestamp} > {self.result_timestamp}"
                     )
                     return True
         return False
@@ -222,5 +219,5 @@ class AddedNode:
             logging.info(f"Updating node ({self.id}): {self.name}")
             self._refresh_result()
         else:
-            logging.info(f"Returning precomputed for {self.id}: {self._result}")
-        return self._result
+            logging.info(f"Returning precomputed for {self.id}: {self.result}")
+        return self.result

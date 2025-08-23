@@ -121,8 +121,8 @@ class TestProcessGraph(unittest.TestCase):
         self.assertEqual(sum_node2.process_call_count, 1)
 
         # But if a dependency is updated, update the node.
-        assert node2._result_timestamp is not None
-        node1._result_timestamp = node2._result_timestamp + 1
+        assert node2.result_timestamp is not None
+        node1.result_timestamp = node2.result_timestamp + 1
         self.assertEqual(graph.run_upto([node2]), 6)
         self.assertEqual(sum_node1.process_call_count, 1)
         self.assertEqual(sum_node2.process_call_count, 2)

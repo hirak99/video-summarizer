@@ -15,12 +15,15 @@ from .video_flow_nodes import student_eval_type
 
 _OUTDIR = video_config.VIDEO_SUMMARIES_DIR / "StudentHighlights"
 
+_FORCE = False
+
 
 def main():
     persist_dir = _OUTDIR / "logs" / compile_options.COMPILATION_TYPE.value
 
     graph = process_graph.ProcessGraph()
     student_const = graph.add_node(0, process_node.constant("Student"), {"value": None})
+
     highlight_curate_node = graph.add_node(
         1,
         hhc.HighlightCurator,
@@ -30,8 +33,7 @@ def main():
             "log_dir": str(persist_dir),
         },
         version=4,
-        # TODO: Instead of always forcing, should check if any of the sources in video_flow changed.
-        force=True,
+        force=True,  # DO NOT change this. Instead use the _FORCE variable.
     )
     eval_template_node = graph.add_node(
         2,
@@ -55,6 +57,17 @@ def main():
     for student_id in domain_config.STUDENTS:
         logging.info(f"Processing student: {student_id}")
         graph.persist(str(persist_dir / f"{student_id}.process_graph.json"))
+
+        result_timestamp = highlight_curate_node.result_timestamp
+        source_timestamp = hhc.HighlightCurator.source_timestamp(student_id)
+        logging.info(f"{result_timestamp=}, {source_timestamp=}")
+        # Check if computation should be skipped.
+        if not _FORCE:
+            if result_timestamp is not None and source_timestamp is not None:
+                if source_timestamp <= result_timestamp:
+                    logging.info(f"Skipping student: {student_id} because up to date.")
+                    continue
+
         student_const.set("value", student_id)
         graph.run_upto([movie_compile_node, eval_template_node])
 

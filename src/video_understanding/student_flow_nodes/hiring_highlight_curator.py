@@ -12,6 +12,7 @@ from . import compile_options
 from .. import video_config
 from .. import video_flow_graph
 from ...domain_specific import manual_overrides
+from ...flow import internal_graph_node
 from ...flow import process_node
 from ..utils import file_conventions
 from ..utils import misc_utils
@@ -226,44 +227,56 @@ def _choose_highlights(highlights: list[HighlightData]) -> list[HighlightData]:
     return chosen
 
 
+@functools.lru_cache(maxsize=1)
+def _get_all_video_fnames(file_search_term: str) -> list[str]:
+    return video_config.all_video_files(regex_str=rf"(\b|_){file_search_term}\b")
+
+
 class HighlightCurator(process_node.ProcessNode):
 
-    def __init__(self):
-        # The graph will be used to access processed results for individual videos.
-        self._video_graph = video_flow_graph.VideoFlowGraph(makeviz=False, dry_run=True)
+    # Class variable.
+    _video_graph = video_flow_graph.VideoFlowGraph(makeviz=False, dry_run=True)
+
+    @classmethod
+    @functools.lru_cache(maxsize=256)
+    def _get_highlights_node(cls, video_fname: str) -> internal_graph_node.AddedNode:
+        cls._video_graph.persist_graph_for(video_fname)
+
+        match compile_options.COMPILATION_TYPE:
+            case compile_options.COMPILATION_TYPE.HIRING:
+                highlights_node = cls._video_graph.highlights_student_hiring
+            case compile_options.COMPILATION_TYPE.RESUME:
+                highlights_node = cls._video_graph.highlights_student_resume
+            case _:
+                raise ValueError(
+                    f"Unknown compilation type: {compile_options.COMPILATION_TYPE}"
+                )
+        if highlights_node.result is None:
+            raise ValueError(f"Highlights node result not computed for {video_fname}")
+        return highlights_node
+
+    @classmethod
+    def source_timestamp(cls, file_search_term: str) -> float | None:
+        latest_timestamp = 0.0
+        for video_fname in _get_all_video_fnames(file_search_term):
+            highlights_node = cls._get_highlights_node(video_fname)
+            if highlights_node.result_timestamp is None:
+                return None
+            latest_timestamp = max(latest_timestamp, highlights_node.result_timestamp)
+        return latest_timestamp
 
     @override
     def process(self, file_search_term: str, log_dir: str, out_dir: str) -> str:
-        file_glob = video_config.all_video_files(
-            regex_str=rf"(\b|_){file_search_term}\b"
-        )
-        # logging.info(f"Files: {file_glob}")
-
         eval_segments: list[HighlightData] = []
-        for video_fname in file_glob:
-            # Load results for this video, to get some output filenames.
-            self._video_graph.persist_graph_for(video_fname)
 
+        for video_fname in _get_all_video_fnames(file_search_term):
             out_stem = misc_utils.get_output_stem(
                 video_fname, video_config.VIDEOS_DIR, video_config.WORKSPACE_DIR
             )
 
             captions_file = out_stem + role_based_captioner.FILE_SUFFIX
 
-            match compile_options.COMPILATION_TYPE:
-                case compile_options.COMPILATION_TYPE.HIRING:
-                    highlights_node = self._video_graph.highlights_student_hiring
-                case compile_options.COMPILATION_TYPE.RESUME:
-                    highlights_node = self._video_graph.highlights_student_resume
-                case _:
-                    raise ValueError(
-                        f"Unknown compilation type: {compile_options.COMPILATION_TYPE}"
-                    )
-
-            if highlights_node.result is None:
-                raise ValueError(
-                    f"Highlights node result not computed for {video_fname}"
-                )
+            highlights_node = self._get_highlights_node(video_fname)
 
             with open(highlights_node.result, "r") as file:
                 evaluations: list[student_eval_type.StudentEvalT] = json.load(file)
