@@ -27,12 +27,13 @@ flowchart TD;
     D --> F["(OpenAI o4-mini)<br>"Speaker Role Identification];
     F --> K[Role Aware Captions]
     D --> K
-    K --> L["(OpenAI o4-mini)<br>"Student Evaluation]
+    K --> HighlightSel["(OpenAI o4-mini)<br>"Highlight Selection]
     A -- video --> N["(OpenAI gpt-4.1)<br>Scene Understanding"]
     A --> LABELS["Manual Labeling"] --> N
     K --> N
-    N --> L
+    N --> HighlightSel
     LABELS@{ shape: lean-r}
+    HighlightSel@{ shape: procs}
 ```
 
 A brief explanation of some of the pipeline nodes is given below:
@@ -54,9 +55,9 @@ Once all the videos are processed, the following is run to summarize across vide
 ```mermaid
 flowchart TD
     X[Original Videos] --> B
-    Y[Student Evaluations] --> A
+    Y[Selected Highlights] --> A
     Z[PII Detections] -- blur --> B
-    A[Hiring Highlight Curation] --> B[Compiled Movie]
+    A[Highlight Curation] --> B[Compiled Movie]
     A --> C[Auto Eval Templates]
     X@{ shape: procs}
     Y@{ shape: procs}
