@@ -13,9 +13,13 @@ from .student_flow_nodes import hiring_movie_compiler
 from .utils import logging_utils
 from .video_flow_nodes import student_eval_type
 
+from typing import Literal
+
 _OUTDIR = video_config.VIDEO_SUMMARIES_DIR / "StudentHighlights"
 
-_FORCE = False
+# Don't change the Literal type.
+# It is set to nag you to change it back to False, after you temporarily set this to True.
+_FORCE: Literal[False] = False
 
 
 def main():

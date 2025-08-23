@@ -1,4 +1,5 @@
 import collections
+import dataclasses
 import functools
 import hashlib
 import itertools
@@ -12,7 +13,6 @@ from . import compile_options
 from .. import video_config
 from .. import video_flow_graph
 from ...domain_specific import manual_overrides
-from ...flow import internal_graph_node
 from ...flow import process_node
 from ..utils import file_conventions
 from ..utils import misc_utils
@@ -20,7 +20,7 @@ from ..utils import movie_compiler
 from ..video_flow_nodes import role_based_captioner
 from ..video_flow_nodes import student_eval_type
 
-from typing import override
+from typing import Any, override
 
 _TARGET_DURATION = 5 * 60
 
@@ -232,6 +232,12 @@ def _get_all_video_fnames(file_search_term: str) -> list[str]:
     return video_config.all_video_files(regex_str=rf"(\b|_){file_search_term}\b")
 
 
+@dataclasses.dataclass(frozen=True)
+class _NodeResult:
+    result: Any
+    result_timestamp: float | None
+
+
 class HighlightCurator(process_node.ProcessNode):
 
     # Class variable.
@@ -239,7 +245,7 @@ class HighlightCurator(process_node.ProcessNode):
 
     @classmethod
     @functools.lru_cache(maxsize=256)
-    def _get_highlights_node(cls, video_fname: str) -> internal_graph_node.AddedNode:
+    def _get_highlights_node(cls, video_fname: str) -> _NodeResult:
         cls._video_graph.persist_graph_for(video_fname)
 
         match compile_options.COMPILATION_TYPE:
@@ -253,7 +259,9 @@ class HighlightCurator(process_node.ProcessNode):
                 )
         if highlights_node.result is None:
             raise ValueError(f"Highlights node result not computed for {video_fname}")
-        return highlights_node
+        # It's important to not return the highlights_node directly, since it is
+        # going to be overwritten on another call to persist_graph_for(...).
+        return _NodeResult(highlights_node.result, highlights_node.result_timestamp)
 
     @classmethod
     def source_timestamp(cls, file_search_term: str) -> float | None:
