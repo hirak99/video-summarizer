@@ -260,6 +260,11 @@ class HighlightCurator(process_node.ProcessNode):
                         f"Unknown compilation type: {compile_options.COMPILATION_TYPE}"
                     )
 
+            if highlights_node.result is None:
+                raise ValueError(
+                    f"Highlights node result not computed for {video_fname}"
+                )
+
             with open(highlights_node.result, "r") as file:
                 evaluations: list[student_eval_type.StudentEvalT] = json.load(file)
                 for evaluation in evaluations:

@@ -11,6 +11,7 @@ from .student_flow_nodes import eval_template_maker
 from .student_flow_nodes import hiring_highlight_curator as hhc
 from .student_flow_nodes import hiring_movie_compiler
 from .utils import logging_utils
+from .video_flow_nodes import student_eval_type
 
 _OUTDIR = video_config.VIDEO_SUMMARIES_DIR / "StudentHighlights"
 
@@ -66,11 +67,17 @@ def main():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Student Flow Pipeline")
+    # List the options from the student_eval_type.CompilationType enum.
+    valid_types: list[str] = [
+        member.value
+        for member in student_eval_type.CompilationType.__members__.values()
+        if member != student_eval_type.CompilationType.UNKNOWN
+    ]
     parser.add_argument(
         "--movie-type",
         type=str,
         required=True,
-        help="Type of movie compilation to perform. E.g. hiring or resume.",
+        help=f"Type of movie compilation to perform. Can be one of: {valid_types}.",
     )
     args = parser.parse_args()
 
