@@ -263,6 +263,8 @@ class HighlightCurator(process_node.ProcessNode):
             with open(eval_node.result, "r") as file:
                 evaluations: list[student_eval_type.StudentEvalT] = json.load(file)
                 for evaluation in evaluations:
+                    # Sometimes the comment is not capitalized in LLM output.
+                    evaluation["comment"] = evaluation["comment"].capitalize()
                     eval_segments.append(
                         HighlightData(
                             movie=video_fname,

@@ -30,7 +30,8 @@ from .utils import file_conventions
 # 7.4.1 - Skip fading for consecutive clips.
 # 7.5 - Correct long (initial) silence in some Whisper transcriptions.
 # 7.6 - Prompt tweak to prioritize teacher's response in clarifications. Also reduced the fade time from 1.0s to 0.5s.
-VERSION = "7.6"
+# 7.7 - Added resume prompt. Also now we capitalize comments - so no more fully lowercase comments.
+VERSION = "7.7"
 
 _HOME = pathlib.Path(os.environ["HOME"])
 VIDEOS_DIR = _HOME / "data/videos"
