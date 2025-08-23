@@ -76,7 +76,7 @@ STUDENT_RESUME_PROMPT_TEMPLATE: list[str] = [
     "Your response must be in JSON format, like this:",
     "[",
     "  {",
-    '    "example_of": "strength",',
+    # The key "example_of" can only be "strength, so we don't ask the LLM to fill it. It's filled in by the code.
     '    "explanation": YOUR_JUSTIFICATION_WITH_TIMESTAMPS,',
     '    "comment": BRIEF_4_5_WORD_DESCRIPTION,',
     '    "start": TIME_IN_SECONDS,',

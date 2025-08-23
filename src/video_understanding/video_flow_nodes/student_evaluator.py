@@ -2,7 +2,9 @@ import datetime
 import json
 
 from . import role_based_captioner
+from . import student_eval_type
 from . import vision_processor
+from .. import prompt_templates
 from .. import video_config
 from ...flow import process_node
 from ..llm_service import llm
@@ -15,13 +17,21 @@ from typing import override
 
 
 def _student_evaluation_prompt(
-    prompt_template: list[str],
+    compilation_type: student_eval_type.CompilationType,
     source_file: str,
     task_description: str,
     role_aware_summary: list[role_based_captioner.RoleAwareCaptionT],
     scene_understanding: vision_processor.SceneListT | None,
 ) -> list[str]:
     """Stores student evaluations as a json file and returns the path."""
+    match compilation_type:
+        case student_eval_type.CompilationType.HIRING:
+            prompt_template = prompt_templates.STUDENT_EVAL_PROMPT_TEMPLATE
+        case student_eval_type.CompilationType.RESUME:
+            prompt_template = prompt_templates.STUDENT_RESUME_PROMPT_TEMPLATE
+        case _:
+            raise ValueError(f"Unknown compilation type: {compilation_type}")
+
     return templater.fill(
         prompt_template,
         {
@@ -45,13 +55,12 @@ class StudentEvaluator(process_node.ProcessNode):
     @override
     def process(
         self,
-        prompt_template: list[str],
+        compilation_type: student_eval_type.CompilationType,
         source_file: str,
         role_aware_summary_file: str,
         # Note: Remove `| None` if we roll out ENABLE_VISION as True. For that we need to ensure the presence of manual labels.
         scene_understanding_file: str | None,
         out_file_stem: str,
-        out_file_suffix: str,
     ) -> str:
         """Evaluates a video for different purposes as indicated in the params.
 
@@ -66,6 +75,7 @@ class StudentEvaluator(process_node.ProcessNode):
         Returns:
             Full path of the json file with output.
         """
+        out_file_suffix = f".highlights_for_{compilation_type.value}.json"
         out_file_name = out_file_stem + out_file_suffix
         with open(role_aware_summary_file, "r") as f:
             role_aware_summary: list[role_based_captioner.RoleAwareCaptionT] = (
@@ -86,7 +96,7 @@ class StudentEvaluator(process_node.ProcessNode):
                 )
 
         prompt = _student_evaluation_prompt(
-            prompt_template=prompt_template,
+            compilation_type=compilation_type,
             source_file=source_file,
             task_description=task_description,
             role_aware_summary=role_aware_summary,
@@ -96,12 +106,26 @@ class StudentEvaluator(process_node.ProcessNode):
         # Current date-time as "yyyymmdd-hhmmss".
         datetime_str = datetime.datetime.now().strftime(r"%Y%m%d-%H%M%S")
 
-        response = self._llm_instance.do_prompt_and_parse(
+        response_list = self._llm_instance.do_prompt_and_parse(
             "\n".join(prompt),
             transformers=[llm.remove_thinking, llm_utils.parse_as_json],
             max_tokens=4096,
             log_file=f"{out_file_name}.llm_log.v{video_config.VERSION}.{datetime_str}.txt",
         )
+
+        for response in response_list:
+            if compilation_type == student_eval_type.CompilationType.RESUME:
+                # Check that "example_of" is not pre-populated.
+                if "example_of" in response:
+                    raise ValueError(
+                        "Resume compilation should not have 'example_of' pre-populated."
+                    )
+                # "example_of" is "strength" in this case.
+                response["example_of"] = "strength"
+            # Confirm that responses follow the correct format.
+            # TODO: This should ideally be moved to a prompt transformer, so that automatic retry can happen.
+            student_eval_type.StudentEvalT(**response)
+
         with open(out_file_name, "w") as f:
-            json.dump(response, f)
+            json.dump(response_list, f)
         return out_file_name

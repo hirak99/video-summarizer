@@ -4,7 +4,6 @@ import logging
 import os
 import re
 
-from . import prompt_templates
 from . import video_config
 from ..domain_specific import domain_config
 from ..flow import internal_graph_node
@@ -16,6 +15,7 @@ from .video_flow_nodes import ocr_detector
 from .video_flow_nodes import role_based_captioner
 from .video_flow_nodes import role_identifier
 from .video_flow_nodes import speaker_assigner
+from .video_flow_nodes import student_eval_type
 from .video_flow_nodes import student_evaluator
 from .video_flow_nodes import transcriber
 from .video_flow_nodes import transcription_refiner
@@ -119,12 +119,11 @@ class VideoFlowGraph:
             10,
             student_evaluator.StudentEvaluator,
             {
-                "prompt_template": prompt_templates.STUDENT_EVAL_PROMPT_TEMPLATE,
+                "compilation_type": student_eval_type.CompilationType.HIRING,
                 "source_file": self._source_file_const,
                 "role_aware_summary_file": self._role_based_caption_node,
                 "scene_understanding_file": self._vision_process_node,
                 "out_file_stem": self._out_stem_const,
-                "out_file_suffix": ".student_hiring.json",
             },
             version=4,
         )
@@ -132,13 +131,13 @@ class VideoFlowGraph:
             15,
             student_evaluator.StudentEvaluator,
             {
-                "prompt_template": prompt_templates.STUDENT_RESUME_PROMPT_TEMPLATE,
+                "compilation_type": student_eval_type.CompilationType.RESUME,
                 "source_file": self._source_file_const,
                 "role_aware_summary_file": self._role_based_caption_node,
                 "scene_understanding_file": self._vision_process_node,
                 "out_file_stem": self._out_stem_const,
-                "out_file_suffix": ".student_resume.json",
             },
+            force=True,
         )
         ocr_detect_node = graph.add_node(
             12,
