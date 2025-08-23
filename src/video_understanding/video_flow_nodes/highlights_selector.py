@@ -45,7 +45,7 @@ def _student_evaluation_prompt(
     )
 
 
-class StudentEvaluator(process_node.ProcessNode):
+class HighlightsSelector(process_node.ProcessNode):
     def __init__(self):
         # self._llm_instance = llm.LocalLlmInstance()
         # self._llm_instance = llm.OpenAiLlmInstance("gpt-3.5-turbo")

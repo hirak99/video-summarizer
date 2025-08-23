@@ -252,15 +252,15 @@ class HighlightCurator(process_node.ProcessNode):
 
             match compile_options.COMPILATION_TYPE:
                 case compile_options.COMPILATION_TYPE.HIRING:
-                    eval_node = self._video_graph.student_eval_hiring_node
+                    highlights_node = self._video_graph.highlights_student_hiring
                 case compile_options.COMPILATION_TYPE.RESUME:
-                    eval_node = self._video_graph.student_eval_resume_node
+                    highlights_node = self._video_graph.highlights_student_resume
                 case _:
                     raise ValueError(
                         f"Unknown compilation type: {compile_options.COMPILATION_TYPE}"
                     )
 
-            with open(eval_node.result, "r") as file:
+            with open(highlights_node.result, "r") as file:
                 evaluations: list[student_eval_type.StudentEvalT] = json.load(file)
                 for evaluation in evaluations:
                     # Sometimes the comment is not capitalized in LLM output.

@@ -16,7 +16,7 @@ from .video_flow_nodes import role_based_captioner
 from .video_flow_nodes import role_identifier
 from .video_flow_nodes import speaker_assigner
 from .video_flow_nodes import student_eval_type
-from .video_flow_nodes import student_evaluator
+from .video_flow_nodes import highlights_selector
 from .video_flow_nodes import transcriber
 from .video_flow_nodes import transcription_refiner
 from .video_flow_nodes import vision_processor
@@ -115,9 +115,9 @@ class VideoFlowGraph:
         )
         if not video_config.ENABLE_VISION:
             self._vision_process_node = None
-        self.student_eval_hiring_node = graph.add_node(
+        self.highlights_student_hiring = graph.add_node(
             10,
-            student_evaluator.StudentEvaluator,
+            highlights_selector.HighlightsSelector,
             {
                 "compilation_type": student_eval_type.CompilationType.HIRING,
                 "source_file": self._source_file_const,
@@ -127,9 +127,9 @@ class VideoFlowGraph:
             },
             version=4,
         )
-        self.student_eval_resume_node = graph.add_node(
+        self.highlights_student_resume = graph.add_node(
             15,
-            student_evaluator.StudentEvaluator,
+            highlights_selector.HighlightsSelector,
             {
                 "compilation_type": student_eval_type.CompilationType.RESUME,
                 "source_file": self._source_file_const,
@@ -151,8 +151,8 @@ class VideoFlowGraph:
 
         # Final target node(s) for all files.
         final_nodes: list[internal_graph_node.AddedNode] = [
-            self.student_eval_hiring_node,
-            self.student_eval_resume_node,
+            self.highlights_student_hiring,
+            self.highlights_student_resume,
             ocr_detect_node,
         ]
         if makeviz:
