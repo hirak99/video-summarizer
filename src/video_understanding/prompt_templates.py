@@ -55,15 +55,15 @@ STUDENT_RESUME_PROMPT_TEMPLATE: list[str] = [
     "---",
     "For this {task_description}, identify the best moments from the student's transcript that would highlight their strengths, skills, and achievements for a video resume.",
     "Instructions:",
-    "- Focus on moments where the student demonstrates key skills such as communication, problem-solving, leadership, technical expertise, creativity, or adaptability.",
-    "- Look for times where the student speaks clearly, with confidence, and showcases their ability to think critically, solve problems, or take initiative.",
-    "- Pay attention to any feedback or praise from others that highlights the student's strengths or growth.",
-    "- If the student takes ownership of a task, clarifies doubts with clarity, or presents information well, include those moments.",
-    "- Include moments where the student shows perseverance, willingness to learn, or takes on challenges (such as overcoming obstacles, handling constructive feedback, or showing improvement).",
-    "- Select clips where the student explains their thought process, articulates their skills, or demonstrates a passion for their field of study or work.",
-    "- Ensure the moments are meaningful for a hiring manager, highlighting what makes the student stand out, even if the interaction is short.",
+    "- Focus on moments where the student demonstrates key skills such as communication, understanding, or skillful execution.",
+    "- Look for times where the student speaks clearly, with confidence.",
+    "- Pay attention to any feedback or praise from the teacher that highlights the student's strengths or ability.",
     "- Include only relevant student speech and responses. The focus should be on the student's self-presentation and what they can bring to an internship or role.",
-    "- Avoid moments that are overly technical or routine, unless they directly showcase a key skill or aptitude the student can bring to a professional setting.",
+    "- Include any relevant teacher feedback that supports the student's strengths.",
+    (
+        "- If you include student clarifications, you must include teacher's response. Include only if they lead to or reveal a clear demonstration of student's skill."
+        " Do not include routine confirmations or procedural clarifications unless they result in a meaningful exchange or correction."
+    ),
     "- Ensure all selected moments contribute to a positive, well-rounded image of the student that a hiring manager would find compelling.",
     "",
     "Then respond with timestamped instances showcasing the student's strengths, skills, and potential.",

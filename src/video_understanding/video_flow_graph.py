@@ -137,7 +137,7 @@ class VideoFlowGraph:
                 "scene_understanding_file": self._vision_process_node,
                 "out_file_stem": self._out_stem_const,
             },
-            version=2,
+            version=3,
         )
         ocr_detect_node = graph.add_node(
             12,
