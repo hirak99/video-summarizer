@@ -76,6 +76,15 @@ def random_temp_fname(prefix: str, extension: str) -> str:
 def all_video_files(
     *, regex: str | None = None, words: list[str] | None = None
 ) -> list[str]:
+    """Returns a list of all video files in the VIDEOS_DIR.
+
+    Args:
+        regex: If provided, only files that match the regex will be returned.
+        words: If provided, only files that contain any of the words will be returned.
+
+    Returns:
+        A list of paths to all video files.
+    """
     video_files: list[pathlib.Path] = []
     for root, _, files in os.walk(VIDEOS_DIR):
         for filename in files:

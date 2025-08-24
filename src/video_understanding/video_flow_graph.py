@@ -4,7 +4,6 @@ import logging
 import os
 
 from . import video_config
-from ..domain_specific import domain_config
 from ..flow import internal_graph_node
 from ..flow import process_graph
 from ..flow import process_node
@@ -173,14 +172,7 @@ class VideoFlowGraph:
         self._source_file_const.set("value", video_path)
         self._out_stem_const.set("value", out_stem)
 
-    def run(self, *, regex: str | None, limit_files: int):
-
-        all_files_to_process = video_config.all_video_files(
-            regex=regex, words=domain_config.STUDENTS
-        )
-
-        if limit_files:
-            all_files_to_process = all_files_to_process[:limit_files]
+    def run(self, *, all_files_to_process: list[str]):
 
         def prep_fn(file_no: int, video_path: str, count: int):
             logging.info(

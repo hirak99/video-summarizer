@@ -3,7 +3,6 @@ import logging
 import os
 
 from . import video_config
-from ..domain_specific import domain_config
 from ..flow import process_graph
 from ..flow import process_node
 from .student_flow_nodes import compile_options
@@ -22,7 +21,7 @@ _OUTDIR = video_config.VIDEO_SUMMARIES_DIR / "StudentHighlights"
 _FORCE: Literal[False] = False
 
 
-def main():
+def _main(students: list[str]):
     persist_dir = _OUTDIR / "logs" / compile_options.COMPILATION_TYPE.value
 
     graph = process_graph.ProcessGraph()
@@ -58,7 +57,7 @@ def main():
 
     os.makedirs(persist_dir, exist_ok=True)
 
-    for student_id in domain_config.STUDENTS:
+    for student_id in students:
         logging.info(f"Processing student: {student_id}")
         graph.persist(str(persist_dir / f"{student_id}.process_graph.json"))
 
@@ -91,6 +90,13 @@ if __name__ == "__main__":
         if member != student_eval_type.CompilationType.UNKNOWN
     ]
     parser.add_argument(
+        "--students",
+        type=str,
+        nargs="*",
+        default=[],
+        help="Space delimited students to process.",
+    )
+    parser.add_argument(
         "--movie-type",
         type=str,
         required=True,
@@ -98,6 +104,10 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    students: list[str] | None = args.students
+    if not students or len(students) == 0:
+        raise ValueError("One or more students should be provided.")
+
     logging_utils.setup_logging()
     compile_options.set_compilation_type(args.movie_type)
-    main()
+    _main(students=students)
