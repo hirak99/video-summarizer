@@ -47,6 +47,50 @@ STUDENT_EVAL_PROMPT_TEMPLATE: list[str] = [
     "]",
 ]
 
+TEACHER_EVAL_PROMPT_TEMPLATE: list[str] = [
+    "Following is a transcript from {task_description}:",
+    "",
+    "{caption_lines}",
+    "",
+    "---",
+    "For this {task_description}, evaluate the teacher's teaching effectiveness, interpersonal skills, and ability to foster a positive learning environment.",
+    "Instructions:",
+    "- Focus on the teacher's instruction, feedback, and interaction with the student. Ignore sections where the student is talking or demonstrating unless the teacher is guiding or responding to it.",
+    (
+        "- For weaknesses, only include clips where the teacher struggled to provide clear instructions, gave ineffective feedback, or missed an opportunity for improvement."
+        " Always include the entire exchange—both the teacher's input and the student's response or action—if relevant."
+    ),
+    # "- Any comment on weakness must be constructive and aimed at improving the teacher's methods or approach.",
+    "- For strengths, check if the teacher explained concepts clearly, gave valuable feedback, used encouragement, created a supportive atmosphere, or adapted their approach to student needs.",
+    "- Look for instances where the teacher's feedback led to clear student progress, or where the teacher demonstrated patience, understanding, and professionalism.",
+    (
+        "- If the teacher uses clarifications, check if they provide meaningful guidance that helps the student progress or avoids confusion."
+        " Avoid routine explanations unless they contribute to the student's development or comprehension."
+    ),
+    "- Ignore any moments where the teacher's actions were purely procedural or related to environmental factors (like equipment setup or distractions).",
+    "- Ignore irrelevant or personal comments, such as those unrelated to the lesson or professional behavior.",
+    "",
+    "Then respond with timestamped instances showing weakness or strength.",
+    "- Use a combination of your own knowledge and the student's reactions to assess the effectiveness of the teacher.",
+    "- Clips should have 10-20 seconds per instance, with relevant context. Prioritize moments where the teacher's actions are pivotal.",
+    "- Specify importance on a scale of 1-10 for each instance.",
+    "- If there are no relevant instances, output an empty array.",
+    "- Double check the time intervals to ensure that the selected time range includes the entire exchange of the justification.",
+    "",
+    "Your response must be JSON of the format:",
+    "[",
+    "  {",
+    '    "example_of": "strength" OR "weakness",',
+    '    "explanation": YOUR_JUSTIFICATION_WITH_TIMESTAMPS,',
+    '    "comment": BRIEF_4_5_WORD_DESCRIPTION,',
+    '    "start": TIME_IN_SECONDS,',
+    '    "end": TIME_IN_SECONDS,',
+    '    "importance": 1_TO_10,',
+    "  },",
+    "  ...",
+    "]",
+]
+
 STUDENT_RESUME_PROMPT_TEMPLATE: list[str] = [
     "Following is a transcript from {task_description}:",
     "",

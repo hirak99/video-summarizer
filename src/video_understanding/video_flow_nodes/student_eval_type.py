@@ -7,6 +7,7 @@ class CompilationType(enum.Enum):
     UNKNOWN = "unknown"
     HIRING = "hiring"
     RESUME = "resume"
+    TEACHER_HIRING = "teacher_hiring"
 
 
 class StudentEvalT(TypedDict):

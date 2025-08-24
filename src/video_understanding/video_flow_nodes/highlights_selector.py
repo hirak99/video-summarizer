@@ -29,6 +29,8 @@ def _student_evaluation_prompt(
             prompt_template = prompt_templates.STUDENT_EVAL_PROMPT_TEMPLATE
         case student_eval_type.CompilationType.RESUME:
             prompt_template = prompt_templates.STUDENT_RESUME_PROMPT_TEMPLATE
+        case student_eval_type.CompilationType.TEACHER_HIRING:
+            prompt_template = prompt_templates.TEACHER_EVAL_PROMPT_TEMPLATE
         case _:
             raise ValueError(f"Unknown compilation type: {compilation_type}")
 
