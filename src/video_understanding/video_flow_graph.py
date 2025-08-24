@@ -2,7 +2,6 @@ import functools
 import json
 import logging
 import os
-import re
 
 from . import video_config
 from ..domain_specific import domain_config
@@ -174,29 +173,12 @@ class VideoFlowGraph:
         self._source_file_const.set("value", video_path)
         self._out_stem_const.set("value", out_stem)
 
-    def run(self, iregex: str | None, limit_files: int):
+    def run(self, *, regex: str | None, limit_files: int):
 
-        all_files_to_process: list[str] = []
-        for dirpath, dirnames, filenames in os.walk(video_config.VIDEOS_DIR):
-            del dirnames  # Unused.
-            for filename in filenames:
-                if filename.endswith(".mkv") or filename.endswith(".mp4"):
-                    path = os.path.join(dirpath, filename)
-                    if iregex is not None and not re.search(
-                        iregex, path, re.IGNORECASE
-                    ):
-                        continue
-                    for student_id in domain_config.STUDENTS:
-                        if re.search(rf"(\b|_){student_id}\b", path):
-                            # Add this path.
-                            break
-                    else:
-                        if iregex is not None:
-                            logging.info(
-                                f"Ignoring iregex match {path!r}, because not in STUDENTS."
-                            )
-                        continue
-                    all_files_to_process.append(path)
+        all_files_to_process = video_config.all_video_files(
+            regex=regex, words=domain_config.STUDENTS
+        )
+
         if limit_files:
             all_files_to_process = all_files_to_process[:limit_files]
 

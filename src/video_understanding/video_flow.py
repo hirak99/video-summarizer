@@ -7,16 +7,14 @@ from . import video_flow_graph
 from .utils import logging_utils
 
 
-def _main(iregex: str | None, limit_files: int, makeviz: bool, dry_run: bool):
+def _main(regex: str | None, limit_files: int, makeviz: bool, dry_run: bool):
     video_graph = video_flow_graph.VideoFlowGraph(makeviz=makeviz, dry_run=dry_run)
-    video_graph.run(iregex, limit_files)
+    video_graph.run(regex=regex, limit_files=limit_files)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process video files")
-    parser.add_argument(
-        "--iregex", type=str, help="Case-insensitive regex to filter filenames."
-    )
+    parser.add_argument("--regex", type=str, help="Regex to filter filenames.")
     parser.add_argument(
         "--limit",
         type=int,
@@ -45,7 +43,7 @@ if __name__ == "__main__":
     logging_utils.setup_logging()
     dotenv.load_dotenv()
     _main(
-        iregex=args.iregex,
+        regex=args.regex,
         limit_files=args.limit,
         makeviz=args.makeviz,
         dry_run=args.dry_run,

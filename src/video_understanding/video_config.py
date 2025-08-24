@@ -73,15 +73,21 @@ def random_temp_fname(prefix: str, extension: str) -> str:
     return str(tempdir() / f"{prefix}_{random_string}{extension}")
 
 
-def all_video_files(regex_str: str) -> list[str]:
+def all_video_files(
+    *, regex: str | None = None, words: list[str] | None = None
+) -> list[str]:
     video_files: list[pathlib.Path] = []
     for root, _, files in os.walk(VIDEOS_DIR):
         for filename in files:
-            if not filename.endswith(".mkv"):
-                # logging.info(f"Skipping {filename}, not .mkv")
+            if not (filename.endswith(".mkv") or filename.endswith(".mp4")):
                 continue
-            if not re.search(regex_str, filename):
-                # logging.info(f"Skipping {filename}, does not match {regex_str!r}")
+
+            if regex and not re.search(regex, filename):
+                continue
+
+            if words and not any(
+                re.search(rf"(\b|_){word}\b", filename) for word in words
+            ):
                 continue
 
             video_files.append(
