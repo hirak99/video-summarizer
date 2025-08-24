@@ -93,7 +93,6 @@ if __name__ == "__main__":
         "--students",
         type=str,
         nargs="*",
-        default=[],
         help="Space delimited students to process.",
     )
     parser.add_argument(
@@ -106,7 +105,7 @@ if __name__ == "__main__":
 
     students: list[str] | None = args.students
     if not students or len(students) == 0:
-        raise ValueError("One or more students should be provided.")
+        raise ValueError("One or more students must be provided.")
 
     logging_utils.setup_logging()
     compile_options.set_compilation_type(args.movie_type)

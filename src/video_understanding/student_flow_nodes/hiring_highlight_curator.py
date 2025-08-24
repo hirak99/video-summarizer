@@ -229,7 +229,7 @@ def _choose_highlights(highlights: list[HighlightData]) -> list[HighlightData]:
 
 @functools.lru_cache(maxsize=1)
 def _get_all_video_fnames(file_search_term: str) -> list[str]:
-    return video_config.all_video_files(words=[file_search_term])
+    return video_config.all_video_files(students=[file_search_term])
 
 
 @dataclasses.dataclass(frozen=True)

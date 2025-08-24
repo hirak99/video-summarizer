@@ -74,17 +74,39 @@ def random_temp_fname(prefix: str, extension: str) -> str:
 
 
 def all_video_files(
-    *, regex: str | None = None, words: list[str] | None = None
+    *,
+    regex: str | None = None,
+    students: list[str] | None = None,
+    teachers: list[str] | None = None,
 ) -> list[str]:
     """Returns a list of all video files in the VIDEOS_DIR.
 
     Args:
         regex: If provided, only files that match the regex will be returned.
-        words: If provided, only files that contain any of the words will be returned.
+        students: If provided, only files that contain any of the students will be returned.
+        teachers: If provided, only files that contain any of the teachers will be returned.
 
     Returns:
         A list of paths to all video files.
     """
+    if students is None and teachers is None:
+        raise ValueError(
+            "Sanity check: Specify at least one of students or teachers. Specify empty to run all files."
+        )
+
+    # Verify student and teacher ids.
+    for student_id in students or []:
+        # Must be 'S' followed by a number, e.g. 'S00010'.
+        if not re.match(r"^S\d+$", student_id):
+            raise ValueError(f"Invalid student id: {student_id}")
+    for teacher_id in teachers or []:
+        # Must be 'E' followed by a number, e.g. 'E00010'.
+        if not re.match(r"^E\d+$", teacher_id):
+            raise ValueError(f"Invalid teacher id: {teacher_id}")
+
+    # Only files containing these words will be returned.
+    containing_words = (students or []) + (teachers or [])
+
     video_files: list[pathlib.Path] = []
     for root, _, files in os.walk(VIDEOS_DIR):
         for filename in files:
@@ -94,9 +116,12 @@ def all_video_files(
             if regex and not re.search(regex, filename):
                 continue
 
-            if words and not any(
-                re.search(rf"(\b|_){word}\b", filename) for word in words
+            if containing_words and not any(
+                re.search(rf"(\b|_){word}\b", filename) for word in containing_words
             ):
+                logging.info(
+                    f"Skipping {filename} because it does not contain any of {containing_words}."
+                )
                 continue
 
             video_files.append(

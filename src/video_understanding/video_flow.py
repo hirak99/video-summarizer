@@ -13,10 +13,11 @@ def _main(
     limit_files: int,
     makeviz: bool,
     dry_run: bool,
-    file_search_terms: list[str]
+    students: list[str] | None,
+    teachers: list[str] | None,
 ):
     all_files_to_process = video_config.all_video_files(
-        regex=regex, words=file_search_terms
+        regex=regex, students=students, teachers=teachers
     )
 
     if limit_files:
@@ -33,14 +34,12 @@ if __name__ == "__main__":
         "--students",
         type=str,
         nargs="*",
-        default=[],
         help="Space delimited students to process.",
     )
     parser.add_argument(
         "--teachers",
         type=str,
         nargs="*",
-        default=[],
         help="Space delimited teachers to process.",
     )
 
@@ -68,9 +67,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    # Words that a file must contain to be eligible.
-    all_words = args.students + args.teachers
-
     video_config.ENABLE_VISION = not args.disable_vision
 
     logging_utils.setup_logging()
@@ -80,5 +76,6 @@ if __name__ == "__main__":
         limit_files=args.limit,
         makeviz=args.makeviz,
         dry_run=args.dry_run,
-        file_search_terms=all_words,
+        students=args.students,
+        teachers=args.teachers,
     )
