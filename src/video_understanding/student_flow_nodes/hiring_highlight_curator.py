@@ -228,8 +228,14 @@ def _choose_highlights(highlights: list[HighlightData]) -> list[HighlightData]:
 
 
 @functools.lru_cache(maxsize=1)
-def _get_all_video_fnames(file_search_term: str) -> list[str]:
-    return video_config.all_video_files(students=[file_search_term])
+def _get_all_video_fnames(*, student: str | None, teacher: str | None) -> list[str]:
+    if student is None and teacher is None:
+        raise ValueError("Either student or teacher must be specified.")
+    students = [student] if student is not None else []
+    teachers = [teacher] if teacher is not None else []
+    if students and teachers:
+        raise ValueError("Cannot have both students and teachers specified.")
+    return video_config.all_video_files(students=students, teachers=teachers)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -249,10 +255,12 @@ class HighlightCurator(process_node.ProcessNode):
         cls._video_graph.persist_graph_for(video_fname)
 
         match compile_options.COMPILATION_TYPE:
-            case compile_options.COMPILATION_TYPE.HIRING:
+            case compile_options.COMPILATION_TYPE.STUDENT_HIRING:
                 highlights_node = cls._video_graph.highlights_student_hiring
-            case compile_options.COMPILATION_TYPE.RESUME:
+            case compile_options.COMPILATION_TYPE.STUDENT_RESUME:
                 highlights_node = cls._video_graph.highlights_student_resume
+            case compile_options.COMPILATION_TYPE.TEACHER_HIRING:
+                highlights_node = cls._video_graph.highlights_teacher_hiring
             case _:
                 raise ValueError(
                     f"Unknown compilation type: {compile_options.COMPILATION_TYPE}"
@@ -264,9 +272,11 @@ class HighlightCurator(process_node.ProcessNode):
         return _NodeResult(highlights_node.result, highlights_node.result_timestamp)
 
     @classmethod
-    def source_timestamp(cls, file_search_term: str) -> float | None:
+    def source_timestamp(
+        cls, *, student: str | None, teacher: str | None
+    ) -> float | None:
         latest_timestamp = 0.0
-        for video_fname in _get_all_video_fnames(file_search_term):
+        for video_fname in _get_all_video_fnames(student=student, teacher=teacher):
             highlights_node = cls._get_highlights_node(video_fname)
             if highlights_node.result_timestamp is None:
                 return None
@@ -274,10 +284,12 @@ class HighlightCurator(process_node.ProcessNode):
         return latest_timestamp
 
     @override
-    def process(self, file_search_term: str, log_dir: str, out_dir: str) -> str:
+    def process(
+        self, student: str | None, teacher: str | None, log_dir: str, out_dir: str
+    ) -> str:
         eval_segments: list[HighlightData] = []
 
-        for video_fname in _get_all_video_fnames(file_search_term):
+        for video_fname in _get_all_video_fnames(student=student, teacher=teacher):
             out_stem = misc_utils.get_output_stem(
                 video_fname, video_config.VIDEOS_DIR, video_config.WORKSPACE_DIR
             )
@@ -301,7 +313,7 @@ class HighlightCurator(process_node.ProcessNode):
 
         movie_type_str = compile_options.COMPILATION_TYPE.value
         out_file_basename = (
-            f"{file_search_term}_{movie_type_str}_v{video_config.VERSION}"
+            f"{student or teacher}_{movie_type_str}_v{video_config.VERSION}"
         )
 
         logging.info(f"# highlights curated by LLM: {len(eval_segments)}")

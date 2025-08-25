@@ -5,8 +5,8 @@ from typing import Literal, TypedDict
 
 class CompilationType(enum.Enum):
     UNKNOWN = "unknown"
-    HIRING = "hiring"
-    RESUME = "resume"
+    STUDENT_HIRING = "student_hiring"
+    STUDENT_RESUME = "student_resume"
     TEACHER_HIRING = "teacher_hiring"
 
 

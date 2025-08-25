@@ -117,7 +117,7 @@ class VideoFlowGraph:
             10,
             highlights_selector.HighlightsSelector,
             {
-                "compilation_type": student_eval_type.CompilationType.HIRING,
+                "compilation_type": student_eval_type.CompilationType.STUDENT_HIRING,
                 "source_file": self._source_file_const,
                 "role_aware_summary_file": self._role_based_caption_node,
                 "scene_understanding_file": self._vision_process_node,
@@ -129,7 +129,7 @@ class VideoFlowGraph:
             15,
             highlights_selector.HighlightsSelector,
             {
-                "compilation_type": student_eval_type.CompilationType.RESUME,
+                "compilation_type": student_eval_type.CompilationType.STUDENT_RESUME,
                 "source_file": self._source_file_const,
                 "role_aware_summary_file": self._role_based_caption_node,
                 "scene_understanding_file": self._vision_process_node,

@@ -25,9 +25,9 @@ def _student_evaluation_prompt(
 ) -> list[str]:
     """Stores student evaluations as a json file and returns the path."""
     match compilation_type:
-        case student_eval_type.CompilationType.HIRING:
+        case student_eval_type.CompilationType.STUDENT_HIRING:
             prompt_template = prompt_templates.STUDENT_EVAL_PROMPT_TEMPLATE
-        case student_eval_type.CompilationType.RESUME:
+        case student_eval_type.CompilationType.STUDENT_RESUME:
             prompt_template = prompt_templates.STUDENT_RESUME_PROMPT_TEMPLATE
         case student_eval_type.CompilationType.TEACHER_HIRING:
             prompt_template = prompt_templates.TEACHER_EVAL_PROMPT_TEMPLATE
@@ -116,7 +116,7 @@ class HighlightsSelector(process_node.ProcessNode):
         )
 
         for response in response_list:
-            if compilation_type == student_eval_type.CompilationType.RESUME:
+            if compilation_type == student_eval_type.CompilationType.STUDENT_RESUME:
                 # Check that "example_of" is not pre-populated.
                 if "example_of" in response:
                     raise ValueError(

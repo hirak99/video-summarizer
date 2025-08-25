@@ -80,5 +80,5 @@ export OPEN_API_KEY="your OpenAI key"
 # All the run_*.sh scripts run binaries.
 # Run video_flow and student_flow.
 ./scripts/run_video_flow.sh  --students S00001 S00002
-./scripts/run_student_flow.sh --students S00001 S00002 --movie-type resume
+./scripts/run_student_flow.sh --students S00001 S00002 --movie-type student_resume
 ```
