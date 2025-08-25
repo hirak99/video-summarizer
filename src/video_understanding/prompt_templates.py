@@ -1,6 +1,6 @@
 # All prompt templates should be placed here.
 
-STUDENT_EVAL_PROMPT_TEMPLATE: list[str] = [
+STUDENT_HIRING_PROMPT_TEMPLATE: list[str] = [
     "Following is a transcript from {task_description}:",
     "",
     "{caption_lines}",
@@ -47,7 +47,7 @@ STUDENT_EVAL_PROMPT_TEMPLATE: list[str] = [
     "]",
 ]
 
-TEACHER_EVAL_PROMPT_TEMPLATE: list[str] = [
+TEACHER_HIRING_PROMPT_TEMPLATE: list[str] = [
     "Following is a transcript from {task_description}:",
     "",
     "{caption_lines}",

@@ -26,11 +26,11 @@ def _student_evaluation_prompt(
     """Stores student evaluations as a json file and returns the path."""
     match compilation_type:
         case student_eval_type.CompilationType.STUDENT_HIRING:
-            prompt_template = prompt_templates.STUDENT_EVAL_PROMPT_TEMPLATE
+            prompt_template = prompt_templates.STUDENT_HIRING_PROMPT_TEMPLATE
         case student_eval_type.CompilationType.STUDENT_RESUME:
             prompt_template = prompt_templates.STUDENT_RESUME_PROMPT_TEMPLATE
         case student_eval_type.CompilationType.TEACHER_HIRING:
-            prompt_template = prompt_templates.TEACHER_EVAL_PROMPT_TEMPLATE
+            prompt_template = prompt_templates.TEACHER_HIRING_PROMPT_TEMPLATE
         case _:
             raise ValueError(f"Unknown compilation type: {compilation_type}")
 
