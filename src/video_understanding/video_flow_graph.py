@@ -135,7 +135,7 @@ class VideoFlowGraph:
                 "scene_understanding_file": self._vision_process_node,
                 "out_file_stem": self._out_stem_const,
             },
-            version=3,
+            version=4,
         )
         self.highlights_teacher_hiring = graph.add_node(
             16,

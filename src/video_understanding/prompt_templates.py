@@ -101,16 +101,14 @@ STUDENT_RESUME_PROMPT_TEMPLATE: list[str] = [
     "Instructions:",
     "- Focus on moments where the student demonstrates key skills such as communication, understanding, or skillful execution.",
     "- Look for times where the student speaks clearly, with confidence.",
-    "- Pay attention to any feedback or praise from the teacher that highlights the student's strengths or ability.",
-    "- Include only relevant student speech and responses. The focus should be on the student's self-presentation and what they can bring to an internship or role.",
+    "- DO NOT include self-admission of failure on routine tasks.",
+    "- DO NOT include if the student sounds uncertain.",
     "- Include any relevant teacher feedback that supports the student's strengths.",
-    (
-        "- If you include student clarifications, you must include teacher's response. Include only if they lead to or reveal a clear demonstration of student's skill."
-        " Do not include routine confirmations or procedural clarifications unless they result in a meaningful exchange or correction."
-    ),
+    "- Pay attention to any feedback or praise from the teacher that highlights the student's strengths or ability.",
     "- Ensure all selected moments contribute to a positive, well-rounded image of the student that a hiring manager would find compelling.",
+    "- DO NOT include comments, corrections, or workarounds related to equipment, props, recording glasses, visual clarity, or dolls - even if the student shows resourcefulness."
     "",
-    "Then respond with timestamped instances showcasing the student's strengths, skills, and potential.",
+    "Then respond with timestamped instances showcasing the student's display of strength and skills.",
     "- Each instance should be a brief clip that showcases the student's capabilities or personality in a clear, concise manner.",
     "- Specify importance on a scale of 1-10 for each instance, based on how well it demonstrates relevant skills for potential roles.",
     "- Clips should be between 10-20 seconds long, with relevant context that allows a hiring manager to understand the student's abilities.",
