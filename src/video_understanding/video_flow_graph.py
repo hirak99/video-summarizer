@@ -17,6 +17,7 @@ from .video_flow_nodes import speaker_assigner
 from .video_flow_nodes import student_eval_type
 from .video_flow_nodes import transcriber
 from .video_flow_nodes import transcription_refiner
+from .video_flow_nodes import video_quality_assessor
 from .video_flow_nodes import vision_processor
 from .video_flow_nodes import voice_separator
 
@@ -28,12 +29,21 @@ class VideoFlowGraph:
         graph = process_graph.ProcessGraph(dry_run=dry_run)
 
         # Don't re-use purged node ids.
-        # Next Id: 17
+        # Next Id: 18
         # Id(s) deprecated: 3, 11.
         self._source_file_const = graph.add_node(
             0, process_node.constant("Source Video"), {"value": ""}
         )
         self._out_stem_const = graph.add_node(1, process_node.constant(), {"value": ""})
+        video_quality_assessor_node = graph.add_node(
+            17,
+            video_quality_assessor.VideoQualityAssessor,
+            {
+                "source_file": self._source_file_const,
+                "out_file_stem": self._out_stem_const,
+            },
+            version=1,
+        )
         transcribe_node = graph.add_node(
             2,
             transcriber.WhisperTranscribe,
@@ -160,6 +170,7 @@ class VideoFlowGraph:
 
         # Final target node(s) for all files.
         final_nodes: list[internal_graph_node.AddedNode] = [
+            video_quality_assessor_node,
             self.highlights_student_hiring,
             self.highlights_student_resume,
             self.highlights_teacher_hiring,
