@@ -121,6 +121,9 @@ class AnnotationBlur(VideoAnnotation):
         t: float,
     ) -> npt.NDArray[np.uint8]:
         """Handle teacher and student windows."""
+
+        frame_has_no_labels = True
+
         # Black background.
         new_frame = np.zeros(frame.shape, dtype=np.uint8)
         for scanner in [self._scanner_teacher, self._scanner_student]:
@@ -130,6 +133,8 @@ class AnnotationBlur(VideoAnnotation):
             )
             if not intervals:
                 continue
+
+            frame_has_no_labels = False
 
             # Just use the first, since there should be at most one teacher / student window.
             to_unblur = intervals[0]["label"]
@@ -144,6 +149,12 @@ class AnnotationBlur(VideoAnnotation):
             x2, y2 = x1 + w, y1 + h
             x1, y1, x2, y2 = round(x1), round(y1), round(x2), round(y2)
             new_frame[y1:y2, x1:x2] = frame[y1:y2, x1:x2]
+
+        # On no labels, we will not blur anything.
+        # This is a workaround to handle incomplete labeling.
+        # TODO: Drop this logic once we ensure full labeling.
+        if frame_has_no_labels:
+            return frame
 
         return np.array(new_frame, dtype=np.uint8)
 
