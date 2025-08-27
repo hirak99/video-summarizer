@@ -33,7 +33,8 @@ from .utils import file_conventions
 # 7.7 - Added resume prompt. Also now we capitalize comments - so no more fully lowercase comments.
 # 7.7.1 - Updated resume prompt.
 # 7.7.2 - Further updated resume prompt.
-VERSION = "7.7.2"
+# 7.8 - Implemented automatic inadmissible segment ("choppiness") detection on videos.
+VERSION = "7.8"
 
 _HOME = pathlib.Path(os.environ["HOME"])
 VIDEOS_DIR = _HOME / "data/videos"
