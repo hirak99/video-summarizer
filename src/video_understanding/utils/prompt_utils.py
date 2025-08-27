@@ -4,7 +4,7 @@ from .. import video_config
 from ...domain_specific import manual_overrides
 from ..utils import interval_scanner
 from ..video_flow_nodes import role_based_captioner
-from ..video_flow_nodes import video_quality_assessor
+from ..video_flow_nodes import video_quality_profiler
 from ..video_flow_nodes import vision_processor
 
 
@@ -12,7 +12,7 @@ def caption_lines_for_prompt(
     source_file: str,
     role_aware_summary: list[role_based_captioner.RoleAwareCaptionT],
     scene_understanding: vision_processor.SceneListT | None,
-    bad_segments: list[video_quality_assessor.BadSegment] | None = None,
+    bad_segments: list[video_quality_profiler.BadSegment] | None = None,
     start: float | None = None,
     end: float | None = None,
 ) -> list[str]:

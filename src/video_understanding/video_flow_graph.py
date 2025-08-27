@@ -17,7 +17,7 @@ from .video_flow_nodes import speaker_assigner
 from .video_flow_nodes import transcriber
 from .video_flow_nodes import transcription_refiner
 from .video_flow_nodes import video_flow_types
-from .video_flow_nodes import video_quality_assessor
+from .video_flow_nodes import video_quality_profiler
 from .video_flow_nodes import vision_processor
 from .video_flow_nodes import voice_separator
 
@@ -35,9 +35,9 @@ class VideoFlowGraph:
             0, process_node.constant("Source Video"), {"value": ""}
         )
         self._out_stem_const = graph.add_node(1, process_node.constant(), {"value": ""})
-        video_quality_assess_node = graph.add_node(
+        video_quality_profile_node = graph.add_node(
             17,
-            video_quality_assessor.VideoQualityAssessor,
+            video_quality_profiler.VideoQualityProfiler,
             {
                 "source_file": self._source_file_const,
                 "out_file_stem": self._out_stem_const,
@@ -131,7 +131,7 @@ class VideoFlowGraph:
                 "source_file": self._source_file_const,
                 "role_aware_summary_file": self._role_based_caption_node,
                 "scene_understanding_file": self._vision_process_node,
-                "bad_video_segments_file": video_quality_assess_node,
+                "bad_video_segments_file": video_quality_profile_node,
                 "out_file_stem": self._out_stem_const,
             },
             version=4,
@@ -144,7 +144,7 @@ class VideoFlowGraph:
                 "source_file": self._source_file_const,
                 "role_aware_summary_file": self._role_based_caption_node,
                 "scene_understanding_file": self._vision_process_node,
-                "bad_video_segments_file": video_quality_assess_node,
+                "bad_video_segments_file": video_quality_profile_node,
                 "out_file_stem": self._out_stem_const,
             },
             version=4,
@@ -157,7 +157,7 @@ class VideoFlowGraph:
                 "source_file": self._source_file_const,
                 "role_aware_summary_file": self._role_based_caption_node,
                 "scene_understanding_file": self._vision_process_node,
-                "bad_video_segments_file": video_quality_assess_node,
+                "bad_video_segments_file": video_quality_profile_node,
                 "out_file_stem": self._out_stem_const,
             },
         )

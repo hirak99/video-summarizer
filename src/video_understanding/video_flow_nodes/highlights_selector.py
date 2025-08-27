@@ -3,7 +3,7 @@ import json
 
 from . import role_based_captioner
 from . import video_flow_types
-from . import video_quality_assessor
+from . import video_quality_profiler
 from . import vision_processor
 from .. import prompt_templates
 from .. import video_config
@@ -23,7 +23,7 @@ def _student_evaluation_prompt(
     task_description: str,
     role_aware_summary: list[role_based_captioner.RoleAwareCaptionT],
     scene_understanding: vision_processor.SceneListT | None,
-    bad_segments: list[video_quality_assessor.BadSegment],
+    bad_segments: list[video_quality_profiler.BadSegment],
 ) -> list[str]:
     """Stores student evaluations as a json file and returns the path."""
     match compilation_type:
@@ -104,7 +104,7 @@ class HighlightsSelector(process_node.ProcessNode):
                 )
 
         with open(bad_video_segments_file, "r") as f:
-            bad_segments: list[video_quality_assessor.BadSegment] = json.load(f)
+            bad_segments: list[video_quality_profiler.BadSegment] = json.load(f)
 
         prompt = _student_evaluation_prompt(
             compilation_type=compilation_type,
