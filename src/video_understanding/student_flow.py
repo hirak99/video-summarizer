@@ -14,16 +14,10 @@ from .student_flow_nodes import hiring_movie_compiler
 from .utils import logging_utils
 from .video_flow_nodes import student_eval_type
 
-from typing import Literal
-
 _OUTDIR = video_config.VIDEO_SUMMARIES_DIR / "CompiledHighlights"
 
-# Don't change the Literal type.
-# It is set to nag you to change it back to False, after you temporarily set this to True.
-_FORCE: Literal[False] = False
 
-
-def _main(students: list[str], teachers: list[str]):
+def _main(students: list[str], teachers: list[str], force_rerun: bool):
     persist_dir = _OUTDIR / "logs" / compile_options.COMPILATION_TYPE.value
 
     # Next Node ID: 5
@@ -44,7 +38,7 @@ def _main(students: list[str], teachers: list[str]):
             "log_dir": str(persist_dir),
         },
         version=4,
-        force=True,  # DO NOT change this. Instead use the _FORCE variable.
+        force=True,  # DO NOT change this. Instead use the force_rerun arg.
     )
     eval_template_node = graph.add_node(
         2,
@@ -81,11 +75,13 @@ def _main(students: list[str], teachers: list[str]):
         )
         logging.info(f"{result_timestamp=}, {source_timestamp=}")
         # Check if computation should be skipped.
-        if not _FORCE:
-            if result_timestamp is not None and source_timestamp is not None:
-                if source_timestamp <= result_timestamp:
+        if result_timestamp is not None and source_timestamp is not None:
+            if source_timestamp <= result_timestamp:
+                if not force_rerun:
                     logging.info("Skipping because up to date.")
                     continue
+                else:
+                    logging.info("Forcing a rerun despite being up to date.")
 
         student_const.set("value", student)
         teacher_const.set("value", teacher)
@@ -126,6 +122,11 @@ if __name__ == "__main__":
         required=True,
         help=f"Type of movie compilation to perform. Can be one of: {valid_types}.",
     )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Force re-run of the pipeline even if results are up to date.",
+    )
     args = parser.parse_args()
 
     logging_utils.setup_logging()
@@ -148,4 +149,4 @@ if __name__ == "__main__":
             f"Invalid teachers/students specified for {compile_options.COMPILATION_TYPE}"
         )
 
-    _main(students=args.students, teachers=args.teachers)
+    _main(students=args.students, teachers=args.teachers, force_rerun=args.force)
