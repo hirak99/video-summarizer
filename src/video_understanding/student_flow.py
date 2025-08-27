@@ -12,7 +12,7 @@ from .student_flow_nodes import eval_template_maker
 from .student_flow_nodes import hiring_highlight_curator as hhc
 from .student_flow_nodes import hiring_movie_compiler
 from .utils import logging_utils
-from .video_flow_nodes import student_eval_type
+from .video_flow_nodes import video_flow_types
 
 _OUTDIR = video_config.VIDEO_SUMMARIES_DIR / "CompiledHighlights"
 
@@ -96,11 +96,11 @@ def _main(students: list[str], teachers: list[str], force_rerun: bool):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Student Flow Pipeline")
-    # List the options from the student_eval_type.CompilationType enum.
+    # List the options from the video_flow_types.CompilationType enum.
     valid_types: list[str] = [
         member.value
-        for member in student_eval_type.CompilationType.__members__.values()
-        if member != student_eval_type.CompilationType.UNKNOWN
+        for member in video_flow_types.CompilationType.__members__.values()
+        if member != video_flow_types.CompilationType.UNKNOWN
     ]
     parser.add_argument(
         "--students",
@@ -134,14 +134,14 @@ if __name__ == "__main__":
     if (
         compile_options.COMPILATION_TYPE
         in [
-            student_eval_type.CompilationType.STUDENT_HIRING,
-            student_eval_type.CompilationType.STUDENT_RESUME,
+            video_flow_types.CompilationType.STUDENT_HIRING,
+            video_flow_types.CompilationType.STUDENT_RESUME,
         ]
         and args.teachers
     ) or (
         compile_options.COMPILATION_TYPE
         in [
-            student_eval_type.CompilationType.TEACHER_HIRING,
+            video_flow_types.CompilationType.TEACHER_HIRING,
         ]
         and args.students
     ):

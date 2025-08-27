@@ -18,7 +18,7 @@ from ..utils import file_conventions
 from ..utils import misc_utils
 from ..utils import movie_compiler
 from ..video_flow_nodes import role_based_captioner
-from ..video_flow_nodes import student_eval_type
+from ..video_flow_nodes import video_flow_types
 
 from typing import Any, override
 
@@ -31,7 +31,7 @@ _REMOVE_EDGES_SECS = 5
 
 class HighlightData(pydantic.BaseModel):
     movie: str
-    evaluation: student_eval_type.StudentEvalT
+    evaluation: video_flow_types.HighlightsT
     captions_file: str
 
     @functools.cached_property
@@ -299,7 +299,7 @@ class HighlightCurator(process_node.ProcessNode):
             highlights_node = self._get_highlights_node(video_fname)
 
             with open(highlights_node.result, "r") as file:
-                evaluations: list[student_eval_type.StudentEvalT] = json.load(file)
+                evaluations: list[video_flow_types.HighlightsT] = json.load(file)
                 for evaluation in evaluations:
                     # Sometimes the comment is not capitalized in LLM output.
                     evaluation["comment"] = evaluation["comment"].capitalize()

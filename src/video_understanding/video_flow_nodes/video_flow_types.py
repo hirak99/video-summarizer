@@ -10,7 +10,7 @@ class CompilationType(enum.Enum):
     TEACHER_HIRING = "teacher_hiring"
 
 
-class StudentEvalT(TypedDict):
+class HighlightsT(TypedDict):
     example_of: Literal["strength", "weakness"]
     comment: str
     start: float

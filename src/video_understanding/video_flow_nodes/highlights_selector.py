@@ -2,7 +2,7 @@ import datetime
 import json
 
 from . import role_based_captioner
-from . import student_eval_type
+from . import video_flow_types
 from . import vision_processor
 from .. import prompt_templates
 from .. import video_config
@@ -17,7 +17,7 @@ from typing import override
 
 
 def _student_evaluation_prompt(
-    compilation_type: student_eval_type.CompilationType,
+    compilation_type: video_flow_types.CompilationType,
     source_file: str,
     task_description: str,
     role_aware_summary: list[role_based_captioner.RoleAwareCaptionT],
@@ -25,11 +25,11 @@ def _student_evaluation_prompt(
 ) -> list[str]:
     """Stores student evaluations as a json file and returns the path."""
     match compilation_type:
-        case student_eval_type.CompilationType.STUDENT_HIRING:
+        case video_flow_types.CompilationType.STUDENT_HIRING:
             prompt_template = prompt_templates.STUDENT_HIRING_PROMPT_TEMPLATE
-        case student_eval_type.CompilationType.STUDENT_RESUME:
+        case video_flow_types.CompilationType.STUDENT_RESUME:
             prompt_template = prompt_templates.STUDENT_RESUME_PROMPT_TEMPLATE
-        case student_eval_type.CompilationType.TEACHER_HIRING:
+        case video_flow_types.CompilationType.TEACHER_HIRING:
             prompt_template = prompt_templates.TEACHER_HIRING_PROMPT_TEMPLATE
         case _:
             raise ValueError(f"Unknown compilation type: {compilation_type}")
@@ -57,7 +57,7 @@ class HighlightsSelector(process_node.ProcessNode):
     @override
     def process(
         self,
-        compilation_type: student_eval_type.CompilationType,
+        compilation_type: video_flow_types.CompilationType,
         source_file: str,
         role_aware_summary_file: str,
         # Note: Remove `| None` if we roll out ENABLE_VISION as True. For that we need to ensure the presence of manual labels.
@@ -116,7 +116,7 @@ class HighlightsSelector(process_node.ProcessNode):
         )
 
         for response in response_list:
-            if compilation_type == student_eval_type.CompilationType.STUDENT_RESUME:
+            if compilation_type == video_flow_types.CompilationType.STUDENT_RESUME:
                 # Check that "example_of" is not pre-populated.
                 if "example_of" in response:
                     raise ValueError(
@@ -126,7 +126,7 @@ class HighlightsSelector(process_node.ProcessNode):
                 response["example_of"] = "strength"
             # Confirm that responses follow the correct format.
             # TODO: This should ideally be moved to a prompt transformer, so that automatic retry can happen.
-            student_eval_type.StudentEvalT(**response)
+            video_flow_types.HighlightsT(**response)
 
         with open(out_file_name, "w") as f:
             json.dump(response_list, f)

@@ -14,9 +14,9 @@ from .video_flow_nodes import ocr_detector
 from .video_flow_nodes import role_based_captioner
 from .video_flow_nodes import role_identifier
 from .video_flow_nodes import speaker_assigner
-from .video_flow_nodes import student_eval_type
 from .video_flow_nodes import transcriber
 from .video_flow_nodes import transcription_refiner
+from .video_flow_nodes import video_flow_types
 from .video_flow_nodes import video_quality_assessor
 from .video_flow_nodes import vision_processor
 from .video_flow_nodes import voice_separator
@@ -127,7 +127,7 @@ class VideoFlowGraph:
             10,
             highlights_selector.HighlightsSelector,
             {
-                "compilation_type": student_eval_type.CompilationType.STUDENT_HIRING,
+                "compilation_type": video_flow_types.CompilationType.STUDENT_HIRING,
                 "source_file": self._source_file_const,
                 "role_aware_summary_file": self._role_based_caption_node,
                 "scene_understanding_file": self._vision_process_node,
@@ -139,7 +139,7 @@ class VideoFlowGraph:
             15,
             highlights_selector.HighlightsSelector,
             {
-                "compilation_type": student_eval_type.CompilationType.STUDENT_RESUME,
+                "compilation_type": video_flow_types.CompilationType.STUDENT_RESUME,
                 "source_file": self._source_file_const,
                 "role_aware_summary_file": self._role_based_caption_node,
                 "scene_understanding_file": self._vision_process_node,
@@ -151,7 +151,7 @@ class VideoFlowGraph:
             16,
             highlights_selector.HighlightsSelector,
             {
-                "compilation_type": student_eval_type.CompilationType.TEACHER_HIRING,
+                "compilation_type": video_flow_types.CompilationType.TEACHER_HIRING,
                 "source_file": self._source_file_const,
                 "role_aware_summary_file": self._role_based_caption_node,
                 "scene_understanding_file": self._vision_process_node,

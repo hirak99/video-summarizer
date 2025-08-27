@@ -1,16 +1,16 @@
 from ..utils import movie_compiler
-from ..video_flow_nodes import student_eval_type
+from ..video_flow_nodes import video_flow_types
 
 # Should be set by main before proceeding to compile.
-COMPILATION_TYPE = student_eval_type.CompilationType.UNKNOWN
+COMPILATION_TYPE = video_flow_types.CompilationType.UNKNOWN
 
 
 def set_compilation_type(type: str):
     global COMPILATION_TYPE
-    COMPILATION_TYPE = student_eval_type.CompilationType(  # pyright: ignore[reportConstantRedefinition]
-        type
+    COMPILATION_TYPE = (  # pyright: ignore[reportConstantRedefinition]
+        video_flow_types.CompilationType(type)
     )
-    if COMPILATION_TYPE == student_eval_type.CompilationType.UNKNOWN:
+    if COMPILATION_TYPE == video_flow_types.CompilationType.UNKNOWN:
         raise ValueError(f"Should not set compilation type to {type!r}")
 
 
@@ -20,7 +20,7 @@ def get_movie_options() -> movie_compiler.MovieOptions:
     # Default options.
     movie_options = movie_compiler.MovieOptions()
 
-    if COMPILATION_TYPE == student_eval_type.CompilationType.STUDENT_RESUME:
+    if COMPILATION_TYPE == video_flow_types.CompilationType.STUDENT_RESUME:
         # Use a pleasant saturated blue color.
         movie_options.text_color = (77, 192, 255)
 
