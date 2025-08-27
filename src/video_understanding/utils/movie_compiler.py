@@ -1,4 +1,5 @@
 from concurrent import futures
+import dataclasses
 import functools
 import hashlib
 import json
@@ -20,9 +21,20 @@ from ..video_flow_nodes import role_based_captioner
 
 from typing import Callable, TypedDict
 
-_TEXT_COLOR = (255, 165, 0)  # Orange.
-# Background color for the timer bar for clips.
-_BAR_COLOR = tuple(int(c * 0.5) for c in _TEXT_COLOR)
+
+@dataclasses.dataclass
+class MovieOptions:
+    """Class to define movie rendering options for the movie."""
+
+    text_color: tuple[int, int, int] = (255, 165, 0)
+
+    # Background color for the timer bar for clips.
+    @property
+    def bar_color(self) -> tuple[int, int, int]:
+        result = tuple(int(c * 0.5) for c in self.text_color)
+        assert len(result) == 3
+        return result
+
 
 # Number of seconds added to each end of a clip for fading.
 DEFAULT_FADE_TIME = 0.5
@@ -161,7 +173,8 @@ def _ffwd_silence(
 
 
 class MovieCompiler:
-    def __init__(self) -> None:
+    def __init__(self, options: MovieOptions) -> None:
+        self._movie_options = options
         self._clip_files: list[str] = []
         os.makedirs(video_config.tempdir(), exist_ok=True)
 
@@ -177,6 +190,7 @@ class MovieCompiler:
             role_based_captioner.RoleAwareCaptionT
         ],
         start: float,
+        options: MovieOptions,
         blur_scanner: (
             interval_scanner.IntervalScanner[ocr_detector.DetectionInterval] | None
         ),
@@ -204,10 +218,12 @@ class MovieCompiler:
         bar_y = 0
         bar_width = 3
 
-        draw.line([(0, bar_y), (bar_length, bar_y)], fill=_BAR_COLOR, width=bar_width)
+        draw.line(
+            [(0, bar_y), (bar_length, bar_y)], fill=options.text_color, width=bar_width
+        )
         draw.line(
             [(0, bar_y), ((bar_length * t) // duration, bar_y)],
-            fill=_TEXT_COLOR,
+            fill=options.bar_color,
             width=bar_width,
         )
 
@@ -353,6 +369,7 @@ class MovieCompiler:
                 duration=duration,
                 scanner=interval_scanner.IntervalScanner(highlight["captions"]),
                 start=start,
+                options=self._movie_options,
                 blur_scanner=blur_scanner,
                 frame_processor=frame_processor,
             )
@@ -372,7 +389,7 @@ class MovieCompiler:
             text=highlight["description"],
             # font="/usr/share/fonts/truetype/msttcorefonts/Arial.ttf",
             font_size=36,
-            color=f"rgb{_TEXT_COLOR}",
+            color=f"rgb{self._movie_options.text_color}",
             margin=(0, 0, 0, 50),
         )
         txt_desc = txt_desc.with_duration(clip.duration)
@@ -383,7 +400,7 @@ class MovieCompiler:
             text=title,
             # font="/usr/share/fonts/truetype/msttcorefonts/Arial.ttf",
             font_size=36,
-            color=f"rgb{_TEXT_COLOR}",
+            color=f"rgb{self._movie_options.text_color}",
             margin=(0, 0, 0, 50),
         )
         txt_movie_name = txt_movie_name.with_duration(clip.duration)

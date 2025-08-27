@@ -1,6 +1,7 @@
 import logging
 import pathlib
 
+from . import compile_options
 from . import hiring_highlight_curator as hhc
 from .. import video_config
 from ...flow import process_node
@@ -31,7 +32,7 @@ class HiringMovieCompiler(process_node.ProcessNode):
         self, highlights: list[hhc.HighlightData], out_file: str
     ) -> None:
         """Compile the chosen highlights into a movie."""
-        compiler = movie_compiler.MovieCompiler()
+        compiler = movie_compiler.MovieCompiler(compile_options.get_movie_options())
 
         for index, segment in enumerate(highlights):
             logging.info(f"{index + 1} of {len(highlights)}: {segment.movie}")
