@@ -14,6 +14,8 @@ A flow that is run to process each video.
 flowchart TD;
     A[Video Input]
     A -- video --> M[PII Detection]
+    A -- video --> VideoQualityProfiler[Video Quality Profiler]
+    VideoQualityProfiler --> HighlightSel
     A --> I
     Diarization --> I[Visualize for Auditing]
     D --> I
