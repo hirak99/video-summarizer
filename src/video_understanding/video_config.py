@@ -107,6 +107,7 @@ def all_video_files(
 
     # Only files containing these words will be returned.
     containing_words = (students or []) + (teachers or [])
+    seen_words: set[str] = set()
 
     video_files: list[pathlib.Path] = []
     for root, _, files in os.walk(VIDEOS_DIR):
@@ -117,9 +118,13 @@ def all_video_files(
             if regex and not re.search(regex, filename):
                 continue
 
-            if containing_words and not any(
-                re.search(rf"(\b|_){word}\b", filename) for word in containing_words
-            ):
+            any_word_found = False
+            for word in containing_words:
+                if re.search(rf"(\b|_){word}\b", filename):
+                    any_word_found = True
+                    seen_words.add(word)
+
+            if containing_words and not any_word_found:
                 logging.info(
                     f"Skipping {filename} because it does not contain any of {containing_words}."
                 )
@@ -128,6 +133,13 @@ def all_video_files(
             video_files.append(
                 VIDEOS_DIR / os.path.relpath(root, VIDEOS_DIR) / filename
             )
+
+    unseen_words: set[str] = set(containing_words) - seen_words
+    if unseen_words:
+        raise ValueError(
+            f"Following teacher/student term(s) don't appear in any of the video files (after regex filtering): {unseen_words}"
+        )
+
     return sorted((str(x) for x in video_files), key=file_conventions.sort_key)
 
 
