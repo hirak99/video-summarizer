@@ -3,6 +3,7 @@ import json
 
 from . import role_based_captioner
 from . import video_flow_types
+from . import video_quality_assessor
 from . import vision_processor
 from .. import prompt_templates
 from .. import video_config
@@ -22,6 +23,7 @@ def _student_evaluation_prompt(
     task_description: str,
     role_aware_summary: list[role_based_captioner.RoleAwareCaptionT],
     scene_understanding: vision_processor.SceneListT | None,
+    bad_segments: list[video_quality_assessor.BadSegment],
 ) -> list[str]:
     """Stores student evaluations as a json file and returns the path."""
     match compilation_type:
@@ -40,7 +42,10 @@ def _student_evaluation_prompt(
             "task_description": task_description,
             "caption_lines": "\n".join(
                 prompt_utils.caption_lines_for_prompt(
-                    source_file, role_aware_summary, scene_understanding
+                    source_file=source_file,
+                    role_aware_summary=role_aware_summary,
+                    scene_understanding=scene_understanding,
+                    bad_segments=bad_segments,
                 )
             ),
         },
@@ -62,6 +67,7 @@ class HighlightsSelector(process_node.ProcessNode):
         role_aware_summary_file: str,
         # Note: Remove `| None` if we roll out ENABLE_VISION as True. For that we need to ensure the presence of manual labels.
         scene_understanding_file: str | None,
+        bad_video_segments_file: str,
         out_file_stem: str,
     ) -> str:
         """Evaluates a video for different purposes as indicated in the params.
@@ -97,12 +103,16 @@ class HighlightsSelector(process_node.ProcessNode):
                     f.read()
                 )
 
+        with open(bad_video_segments_file, "r") as f:
+            bad_segments: list[video_quality_assessor.BadSegment] = json.load(f)
+
         prompt = _student_evaluation_prompt(
             compilation_type=compilation_type,
             source_file=source_file,
             task_description=task_description,
             role_aware_summary=role_aware_summary,
             scene_understanding=scene_understanding,
+            bad_segments=bad_segments,
         )
 
         # Current date-time as "yyyymmdd-hhmmss".

@@ -35,7 +35,7 @@ class VideoFlowGraph:
             0, process_node.constant("Source Video"), {"value": ""}
         )
         self._out_stem_const = graph.add_node(1, process_node.constant(), {"value": ""})
-        video_quality_assessor_node = graph.add_node(
+        video_quality_assess_node = graph.add_node(
             17,
             video_quality_assessor.VideoQualityAssessor,
             {
@@ -131,6 +131,7 @@ class VideoFlowGraph:
                 "source_file": self._source_file_const,
                 "role_aware_summary_file": self._role_based_caption_node,
                 "scene_understanding_file": self._vision_process_node,
+                "bad_video_segments_file": video_quality_assess_node,
                 "out_file_stem": self._out_stem_const,
             },
             version=4,
@@ -143,6 +144,7 @@ class VideoFlowGraph:
                 "source_file": self._source_file_const,
                 "role_aware_summary_file": self._role_based_caption_node,
                 "scene_understanding_file": self._vision_process_node,
+                "bad_video_segments_file": video_quality_assess_node,
                 "out_file_stem": self._out_stem_const,
             },
             version=4,
@@ -155,6 +157,7 @@ class VideoFlowGraph:
                 "source_file": self._source_file_const,
                 "role_aware_summary_file": self._role_based_caption_node,
                 "scene_understanding_file": self._vision_process_node,
+                "bad_video_segments_file": video_quality_assess_node,
                 "out_file_stem": self._out_stem_const,
             },
         )
@@ -170,7 +173,6 @@ class VideoFlowGraph:
 
         # Final target node(s) for all files.
         final_nodes: list[internal_graph_node.AddedNode] = [
-            video_quality_assessor_node,
             self.highlights_student_hiring,
             self.highlights_student_resume,
             self.highlights_teacher_hiring,
