@@ -219,11 +219,11 @@ class MovieCompiler:
         bar_width = 3
 
         draw.line(
-            [(0, bar_y), (bar_length, bar_y)], fill=options.text_color, width=bar_width
+            [(0, bar_y), (bar_length, bar_y)], fill=options.bar_color, width=bar_width
         )
         draw.line(
             [(0, bar_y), ((bar_length * t) // duration, bar_y)],
-            fill=options.bar_color,
+            fill=options.text_color,
             width=bar_width,
         )
 
