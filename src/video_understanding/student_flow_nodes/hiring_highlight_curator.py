@@ -1,5 +1,4 @@
 import collections
-import dataclasses
 import functools
 import hashlib
 import itertools
@@ -10,8 +9,8 @@ import os
 import pydantic
 
 from . import compile_options
+from . import video_graph_node_getter
 from .. import video_config
-from .. import video_flow_graph
 from ...domain_specific import manual_overrides
 from ...flow import process_node
 from ..utils import file_conventions
@@ -20,7 +19,7 @@ from ..utils import movie_compiler
 from ..video_flow_nodes import role_based_captioner
 from ..video_flow_nodes import video_flow_types
 
-from typing import Any, override
+from typing import override
 
 _TARGET_DURATION = 5 * 60
 
@@ -238,49 +237,22 @@ def _get_all_video_fnames(*, student: str | None, teacher: str | None) -> list[s
     return video_config.all_video_files(students=students, teachers=teachers)
 
 
-@dataclasses.dataclass(frozen=True)
-class _NodeResult:
-    result: Any
-    result_timestamp: float | None
-
-
 class HighlightCurator(process_node.ProcessNode):
 
-    # Class variable.
-    _video_graph = video_flow_graph.VideoFlowGraph(makeviz=False, dry_run=True)
-
     @classmethod
-    @functools.lru_cache(maxsize=256)
-    def _get_highlights_node(cls, video_fname: str) -> _NodeResult:
-        cls._video_graph.persist_graph_for(video_fname)
-
-        match compile_options.COMPILATION_TYPE:
-            case compile_options.COMPILATION_TYPE.STUDENT_HIRING:
-                highlights_node = cls._video_graph.highlights_student_hiring
-            case compile_options.COMPILATION_TYPE.STUDENT_RESUME:
-                highlights_node = cls._video_graph.highlights_student_resume
-            case compile_options.COMPILATION_TYPE.TEACHER_HIRING:
-                highlights_node = cls._video_graph.highlights_teacher_hiring
-            case _:
-                raise ValueError(
-                    f"Unknown compilation type: {compile_options.COMPILATION_TYPE}"
-                )
-        if highlights_node.result is None:
-            raise ValueError(f"Highlights node result not computed for {video_fname}")
-        # It's important to not return the highlights_node directly, since it is
-        # going to be overwritten on another call to persist_graph_for(...).
-        return _NodeResult(highlights_node.result, highlights_node.result_timestamp)
-
-    @classmethod
-    def source_timestamp(
+    def check_source_timestamp(
         cls, *, student: str | None, teacher: str | None
-    ) -> float | None:
+    ) -> float:
+        """Ensures all highlights exists, and returns latest timestamp."""
         latest_timestamp = 0.0
         for video_fname in _get_all_video_fnames(student=student, teacher=teacher):
-            highlights_node = cls._get_highlights_node(video_fname)
-            if highlights_node.result_timestamp is None:
-                return None
-            latest_timestamp = max(latest_timestamp, highlights_node.result_timestamp)
+            video_nodes = video_graph_node_getter.get_video_graph_nodes(video_fname)
+            highlights_node = video_nodes.current_highlights_node
+            result_timestamp = misc_utils.ensure_not_none(
+                highlights_node.result_timestamp,
+                err="Highlights node not computed",
+            )
+            latest_timestamp = max(latest_timestamp, result_timestamp)
         return latest_timestamp
 
     @override
@@ -290,15 +262,23 @@ class HighlightCurator(process_node.ProcessNode):
         eval_segments: list[HighlightData] = []
 
         for video_fname in _get_all_video_fnames(student=student, teacher=teacher):
-            out_stem = misc_utils.get_output_stem(
-                video_fname, video_config.VIDEOS_DIR, video_config.WORKSPACE_DIR
+            video_nodes = video_graph_node_getter.get_video_graph_nodes(video_fname)
+
+            captions_file = misc_utils.ensure_not_none(
+                video_nodes.graph.role_based_caption_node.result,
+                err="Role based captions not computed",
+            )
+            if not isinstance(captions_file, str):
+                raise ValueError(
+                    f"Role based captions file not computed for {video_fname}"
+                )
+
+            highlights_node_result = misc_utils.ensure_not_none(
+                video_nodes.current_highlights_node.result,
+                err="Highlights node not computed",
             )
 
-            captions_file = out_stem + role_based_captioner.FILE_SUFFIX
-
-            highlights_node = self._get_highlights_node(video_fname)
-
-            with open(highlights_node.result, "r") as file:
+            with open(highlights_node_result, "r") as file:
                 evaluations: list[video_flow_types.HighlightsT] = json.load(file)
                 for evaluation in evaluations:
                     # Sometimes the comment is not capitalized in LLM output.

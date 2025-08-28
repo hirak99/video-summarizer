@@ -70,12 +70,13 @@ def _main(students: list[str], teachers: list[str], force_rerun: bool):
         graph.persist(str(persist_dir / persist_fname))
 
         result_timestamp = highlight_curate_node.result_timestamp
-        source_timestamp = hhc.HighlightCurator.source_timestamp(
-            student=student, teacher=teacher
-        )
-        logging.info(f"{result_timestamp=}, {source_timestamp=}")
+        logging.info(f"{result_timestamp=}")
         # Check if computation should be skipped.
-        if result_timestamp is not None and source_timestamp is not None:
+        if result_timestamp is not None:
+            source_timestamp = hhc.HighlightCurator.check_source_timestamp(
+                student=student, teacher=teacher
+            )
+            logging.info(f"{source_timestamp=}")
             if source_timestamp <= result_timestamp:
                 if not force_rerun:
                     logging.info("Skipping because up to date.")

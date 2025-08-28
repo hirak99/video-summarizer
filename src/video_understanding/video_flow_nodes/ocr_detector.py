@@ -23,8 +23,6 @@ _UNDETECTED_SCAN_INTERVAL = 5.0
 # Note that we will blur around the detected interval a bit, which should nicely cover things up.
 _REFINE_INTERVAL = 1 / 30.0
 
-FILE_SUFFIX = ".ocr_detections.json"
-
 
 class DetectionInterval(TypedDict):
     interval: tuple[float, float]
@@ -124,7 +122,8 @@ class OcrDetector(process_node.ProcessNode):
         # Drop entries with no detections.
         results = [x for x in results if x["detections"]]
 
-        out_file_name = out_file_stem + FILE_SUFFIX
+        out_file_name = out_file_stem + ".ocr_detections.json"
+
         logging.info(f"Writing to {out_file_name!r}")
         with open(out_file_name, "w") as f:
             json.dump(results, f)

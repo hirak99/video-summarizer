@@ -1,10 +1,13 @@
 import functools
 import os
-import pathlib
 import re
 import unicodedata
 
+from typing import TypeVar
+
 _SLUGIFY_REPLACEMENT_CHAR = "_"
+
+_T = TypeVar("_T")
 
 
 # Make a text safe to be part of filename.
@@ -19,16 +22,6 @@ def slugify(text: str) -> str:
     return text
 
 
-def get_output_stem(
-    source_file: str, old_root: pathlib.Path, new_root: pathlib.Path
-) -> str:
-    out_path = os.path.join(
-        new_root,
-        os.path.relpath(os.path.dirname(source_file), old_root),
-    )
-    return os.path.join(out_path, os.path.splitext(os.path.basename(source_file))[0])
-
-
 @functools.cache
 def file_stem_to_log_stem(file_stem: str) -> str:
     """Converts /path/to/stem -> /path/to/logs/stem"""
@@ -36,3 +29,9 @@ def file_stem_to_log_stem(file_stem: str) -> str:
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
     return os.path.join(log_dir, os.path.basename(file_stem))
+
+
+def ensure_not_none(value: _T | None, *, err: str) -> _T:
+    if value is None:
+        raise ValueError(err)
+    return value

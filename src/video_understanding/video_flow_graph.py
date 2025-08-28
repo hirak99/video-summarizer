@@ -2,12 +2,12 @@ import functools
 import json
 import logging
 import os
+import pathlib
 
 from . import video_config
 from ..flow import internal_graph_node
 from ..flow import process_graph
 from ..flow import process_node
-from .utils import misc_utils
 from .video_flow_nodes import caption_visualizer
 from .video_flow_nodes import highlights_selector
 from .video_flow_nodes import ocr_detector
@@ -20,6 +20,16 @@ from .video_flow_nodes import video_flow_types
 from .video_flow_nodes import video_quality_profiler
 from .video_flow_nodes import vision_processor
 from .video_flow_nodes import voice_separator
+
+
+def _get_output_stem(
+    source_file: str, old_root: pathlib.Path, new_root: pathlib.Path
+) -> str:
+    out_path = os.path.join(
+        new_root,
+        os.path.relpath(os.path.dirname(source_file), old_root),
+    )
+    return os.path.join(out_path, os.path.splitext(os.path.basename(source_file))[0])
 
 
 class VideoFlowGraph:
@@ -102,7 +112,7 @@ class VideoFlowGraph:
             },
             invalidate_before=1749101896,
         )
-        self._role_based_caption_node = graph.add_node(
+        self.role_based_caption_node = graph.add_node(
             9,
             role_based_captioner.RoleBasedCaptionsNode,
             {
@@ -116,7 +126,7 @@ class VideoFlowGraph:
             vision_processor.VisionProcess,
             {
                 "source_file": self._source_file_const,
-                "role_aware_summary_file": self._role_based_caption_node,
+                "role_aware_summary_file": self.role_based_caption_node,
                 "out_file_stem": self._out_stem_const,
             },
             version=4,
@@ -129,7 +139,7 @@ class VideoFlowGraph:
             {
                 "compilation_type": video_flow_types.CompilationType.STUDENT_HIRING,
                 "source_file": self._source_file_const,
-                "role_aware_summary_file": self._role_based_caption_node,
+                "role_aware_summary_file": self.role_based_caption_node,
                 "scene_understanding_file": self._vision_process_node,
                 "bad_video_segments_file": video_quality_profile_node,
                 "out_file_stem": self._out_stem_const,
@@ -142,7 +152,7 @@ class VideoFlowGraph:
             {
                 "compilation_type": video_flow_types.CompilationType.STUDENT_RESUME,
                 "source_file": self._source_file_const,
-                "role_aware_summary_file": self._role_based_caption_node,
+                "role_aware_summary_file": self.role_based_caption_node,
                 "scene_understanding_file": self._vision_process_node,
                 "bad_video_segments_file": video_quality_profile_node,
                 "out_file_stem": self._out_stem_const,
@@ -155,13 +165,13 @@ class VideoFlowGraph:
             {
                 "compilation_type": video_flow_types.CompilationType.TEACHER_HIRING,
                 "source_file": self._source_file_const,
-                "role_aware_summary_file": self._role_based_caption_node,
+                "role_aware_summary_file": self.role_based_caption_node,
                 "scene_understanding_file": self._vision_process_node,
                 "bad_video_segments_file": video_quality_profile_node,
                 "out_file_stem": self._out_stem_const,
             },
         )
-        ocr_detect_node = graph.add_node(
+        self.ocr_detect_node = graph.add_node(
             12,
             ocr_detector.OcrDetector,
             {
@@ -176,7 +186,7 @@ class VideoFlowGraph:
             self.highlights_student_hiring,
             self.highlights_student_resume,
             self.highlights_teacher_hiring,
-            ocr_detect_node,
+            self.ocr_detect_node,
         ]
         if makeviz:
             final_nodes.append(visualize_node)
@@ -190,7 +200,8 @@ class VideoFlowGraph:
         ]
 
     def persist_graph_for(self, video_path: str):
-        out_stem = misc_utils.get_output_stem(
+        # This looks like ".../path/to/WORKSPACE_DIR/movie_file_name[no-ext]".
+        out_stem = _get_output_stem(
             video_path, video_config.VIDEOS_DIR, video_config.WORKSPACE_DIR
         )
         self.graph.persist(out_stem + ".process_graph_state.json")
@@ -219,7 +230,7 @@ class VideoFlowGraph:
         video_config.repeated_warnings()
 
     def role_aware_captions(self) -> list[role_based_captioner.RoleAwareCaptionT]:
-        result = self._role_based_caption_node.result
+        result = self.role_based_caption_node.result
         if result is None:
             raise ValueError("Role aware captions not computed")
         with open(result) as f:

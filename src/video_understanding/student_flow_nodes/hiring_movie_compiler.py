@@ -3,12 +3,11 @@ import pathlib
 
 from . import compile_options
 from . import hiring_highlight_curator as hhc
+from . import video_graph_node_getter
 from .. import video_config
 from ...flow import process_node
 from ..utils import manual_labels_manager
-from ..utils import misc_utils
 from ..utils import movie_compiler
-from ..video_flow_nodes import ocr_detector
 
 from typing import override
 
@@ -97,9 +96,8 @@ class HiringMovieCompiler(process_node.ProcessNode):
                         logging.info("Lowering fade in time.")
                         fade_in_time = 0.0
 
-            out_stem = misc_utils.get_output_stem(
-                segment.movie, video_config.VIDEOS_DIR, video_config.WORKSPACE_DIR
-            )
+            video_nodes = video_graph_node_getter.get_video_graph_nodes(segment.movie)
+            ocr_file = video_nodes.graph.ocr_detect_node.result
 
             annotation_blur = manual_labels_manager.AnnotationBlur(segment.movie)
 
@@ -112,7 +110,7 @@ class HiringMovieCompiler(process_node.ProcessNode):
                 fade_in_time=fade_in_time,
                 fade_out_time=fade_out_time,
                 temp_clip_hash=segment.fingerprint,  # To invalidate any cached clips.
-                blur_json_file=out_stem + ocr_detector.FILE_SUFFIX,
+                blur_json_file=ocr_file,
                 frame_processor=annotation_blur.process_frame,
             )
             if video_config.TESTING_MODE:
