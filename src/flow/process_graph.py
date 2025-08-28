@@ -50,7 +50,7 @@ class ProcessGraph:
         logging.info(f"Saving graph state to {path}")
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w") as f:
-            json.dump(self._results_dict, f)
+            json.dump(self._results_dict, f, indent=2)
 
     def persist(self, path: str):
         """Sets a file where the results will be saved.
