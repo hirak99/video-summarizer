@@ -75,7 +75,7 @@ class ProcessGraph:
         id: int,
         node_class: Type[process_node.ProcessNode],
         inputs: dict[str, internal_graph_node.AddedNode | Any],
-        version: int = 0,
+        version: int | str = 0,
         constructor_kwargs: dict[str, Any] | None = None,
         invalidate_before: float = 0,
         force: bool = False,

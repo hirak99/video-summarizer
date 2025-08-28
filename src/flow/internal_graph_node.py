@@ -32,7 +32,7 @@ class AddedNode:
     """Returned by graph.add_node(). Do not instantiate manually."""
 
     id: int
-    version: int
+    version: int | str
     node_class: Type[process_node.ProcessNode]
     constructor_args: dict[str, Any]
     inputs: dict[str, "AddedNode | Any"]
@@ -53,7 +53,7 @@ class AddedNode:
 
     # Note: Do not set the following values outside the core flow architecture classes.
     result: Any = None
-    _result_version: int = 0
+    _result_version: int | str = 0
     # When was this result computed.
     result_timestamp: float | None = None
     # How long did the computation take.
@@ -190,7 +190,7 @@ class AddedNode:
         assert self.result_timestamp is not None  # Because self.has_result() is True.
         if self._result_version != self.version:
             logging.info(
-                f"Needs update ({self.id}): {self.name} because version {self._result_version} != {self.version}"
+                f"Needs update ({self.id}): {self.name} because version {self._result_version!r} != {self.version!r}"
             )
             return True
         if self.result_timestamp < self.invalidate_before:
