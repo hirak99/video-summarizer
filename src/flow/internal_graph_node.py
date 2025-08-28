@@ -190,7 +190,7 @@ class AddedNode:
         assert self.result_timestamp is not None  # Because self.has_result() is True.
         if self._result_version != self.version:
             logging.info(
-                f"Needs update ({self.id}): {self.name} because version {self._result_version} < {self.version}"
+                f"Needs update ({self.id}): {self.name} because version {self._result_version} != {self.version}"
             )
             return True
         if self.result_timestamp < self.invalidate_before:
