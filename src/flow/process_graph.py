@@ -101,9 +101,13 @@ class ProcessGraph:
             pass
         self._auto_save_path = path
 
-    def _on_node_result(self, node: internal_graph_node.AddedNode):
+    def _on_node_result(self, node: internal_graph_node.AddedNode, value_changed: bool):
         if self._auto_save_path is not None:
-            self._save_to(self._auto_save_path)
+            # No need to persist the entire graph for passive node, unless the value has changed.
+            # It is important to save if the value changed, for batch process.
+            # It will be saved otherwise when any other node changes.
+            if not node.passive or value_changed:
+                self._save_to(self._auto_save_path)
 
     def add_node(
         self,
@@ -111,7 +115,7 @@ class ProcessGraph:
         node_class: Type[process_node.ProcessNode],
         inputs: dict[str, internal_graph_node.AddedNode | Any],
         version: int | str = 0,
-        volatile: bool = False,
+        passive: bool = False,
         constructor_kwargs: dict[str, Any] | None = None,
         invalidate_before: float = 0,
         force: bool = False,
@@ -125,7 +129,7 @@ class ProcessGraph:
             node_class: Class of the node to add.
             inputs: The inputs to the node. If PipelineNode, then it is output of that node. Other values are passed as-is.
             version: Increment this when the node logic is changed, and it needs to be recomputed.
-            volatile: If True, will not trip dependant nodes, and will be recomputed every time.
+            passive: If True, will not trigger dependant nodes.
             constructor_kwargs: Passed directly to the node's class when it is instantiated.
             invalidate_before: Alternative to version, set this to a time when node logic was changed. Prefer version when possible.
             force: The node will be always recomputed. Use this sparingly, prefer other solutions when possible.
@@ -148,7 +152,7 @@ class ProcessGraph:
             node_class=node_class,
             inputs=inputs,
             version=version,
-            volatile=volatile,
+            passive=passive,
             constructor_args=constructor_kwargs or {},
             invalidate_before=invalidate_before,
             on_result=self._on_node_result,
@@ -168,12 +172,24 @@ class ProcessGraph:
     def add_constant_node(
         self, id: int, *, name: str, value: Any = None
     ) -> internal_graph_node.AddedNode:
-        """Convenience method. You can use .set_value() to set the value."""
+        """Convenience method. You can use .set_value() to set the value.
+
+        Constants are passive by default, they do not trigger updates even if
+        value changes. If you want it trigger dependencies, set .passice = False
+        on the node returned by this function.
+
+        Args:
+            id: Node id. name: Name of the constant.
+            value: Initial value if any. You can also ignore this and use .set_value(), which is necessary for batch processing.
+
+        Returns:
+            The node instance.
+        """
         return self.add_node(
             id,
             _constant_node(name),
             {"value": value},
-            volatile=True,
+            passive=True,
             default_arg_to_set="value",
         )
 

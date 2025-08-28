@@ -39,7 +39,7 @@ class AddedNode:
     # Any results before this will be ignored and recomputed.
     # Tip: Use `date +%s` to get the current time in seconds since epoch.
     invalidate_before: float
-    on_result: Callable[["AddedNode"], None]
+    on_result: Callable[["AddedNode", bool], None]
 
     # Sometimes you will need to override the computed results. You may use this
     # hook to do that. See doc on the type for usage suggestions.
@@ -48,9 +48,12 @@ class AddedNode:
     # If True, will not initialize node constructors, will not compute, and will not save.
     dry_run: bool
 
-    # If volatile, will not trip dependant nodes, and will be recomputed every time.
-    # Volatile nodes are persisted nonetheless. They are run once like normal nodes during batch processing.
-    volatile: bool
+    # Passive nodes do not trigger update for dependencies even if value changes.
+    #
+    # They are useful for maintenance constants such as file paths, since you
+    # may not want to redo extensive pipeline computation if you merely move
+    # your source files.
+    passive: bool
 
     # Which arg will be set if .set() is called without arg name.
     default_arg_to_set: str | None
@@ -118,8 +121,8 @@ class AddedNode:
             },
         }
         assert isinstance(result["meta"], dict)
-        if self.volatile:
-            result["meta"]["volatile"] = True
+        if self.passive:
+            result["meta"]["passive"] = True
         if self._was_overridden_in_dependancy:
             result["meta"]["overriden"] = True
         result["version"] = self._result_version
@@ -188,6 +191,7 @@ class AddedNode:
     def _refresh_result(self):
         kwargs = self._filled_in_inputs
         start = time.time()
+        prev_result = self.result
         if self.dry_run:
             self.result = None
         else:
@@ -195,10 +199,10 @@ class AddedNode:
         self._time = time.time() - start
         self.result_timestamp = datetime.datetime.now().timestamp()
         self._result_version = self.version
-        self.on_result(self)
+        self.on_result(self, prev_result != self.result)
 
     def _needs_update(self) -> bool:
-        if self.volatile:
+        if self.passive:
             return True
         if not self.has_result():
             logging.info(f"Needs update ({self.id}): {self.name} because no result")
@@ -220,7 +224,7 @@ class AddedNode:
             del input_name  # Unused
             if isinstance(input_val, AddedNode):
                 if (
-                    not input_val.volatile
+                    not input_val.passive
                     and input_val.result_timestamp is not None
                     and input_val.result_timestamp > self.result_timestamp
                 ):
