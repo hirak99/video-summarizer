@@ -8,7 +8,7 @@ from . import graph_algorithms
 from . import internal_graph_node
 from . import process_node
 
-from typing import Any, Callable, Generic, Type, TypeVar
+from typing import Any, Callable, Generic, override, Type, TypeVar
 
 # Generic type for process_batch arguments.
 _BatchItemT = TypeVar("_BatchItemT")
@@ -32,6 +32,41 @@ class _BatchStats(Generic[_BatchItemT]):
     completed: int
     # Contains the item_index, item, node, and the exception.
     failures: list[_BatchFailure[_BatchItemT]]
+
+
+def _constant_node(name: str) -> Type[process_node.ProcessNode]:
+    """Must pass "value" as the single argument.
+
+    Usage example -
+
+        graph = process_graph.ProcessGraph()
+        node1 = graph.add_node(1, process_node.constant(), {"value": "hello"})
+        self.assertEqual(node1.run(), "hello")
+
+        graph.reset()
+        node1.set_input("value", "world")
+        self.assertEqual(node1.run(), "world")
+    """
+
+    class _ConstantNode(process_node.ProcessNode):
+        @override
+        def process(self, value):
+            logging.info(f"Constant is {value}")
+            return value
+
+        @override
+        @classmethod
+        def name(cls):
+            return name
+
+        @override
+        def validate_args(self, kwargs):
+            if list(kwargs.keys()) != ["value"]:
+                raise ValueError(
+                    f"Constants must have one 'value' argument, but found: {kwargs}"
+                )
+
+    return _ConstantNode
 
 
 class ProcessGraph:
@@ -70,16 +105,30 @@ class ProcessGraph:
         if self._auto_save_path is not None:
             self._save_to(self._auto_save_path)
 
+    def add_constant_node(
+        self, id: int, *, name: str, value: Any = None
+    ) -> internal_graph_node.AddedNode:
+        """Convenience method. You can use .set_value() to set the value."""
+        return self.add_node(
+            id,
+            _constant_node(name),
+            {"value": value},
+            volatile=True,
+            default_arg_to_set="value",
+        )
+
     def add_node(
         self,
         id: int,
         node_class: Type[process_node.ProcessNode],
         inputs: dict[str, internal_graph_node.AddedNode | Any],
         version: int | str = 0,
+        volatile: bool = False,
         constructor_kwargs: dict[str, Any] | None = None,
         invalidate_before: float = 0,
         force: bool = False,
         manual_override_func: internal_graph_node.ManualOverrideFuncT | None = None,
+        default_arg_to_set: str | None = None,
     ) -> internal_graph_node.AddedNode:
         """Adds a processor node to the graph.
 
@@ -88,10 +137,12 @@ class ProcessGraph:
             node_class: Class of the node to add.
             inputs: The inputs to the node. If PipelineNode, then it is output of that node. Other values are passed as-is.
             version: Increment this when the node logic is changed, and it needs to be recomputed.
+            volatile: If True, will not trip dependant nodes, and will be recomputed every time.
             constructor_kwargs: Passed directly to the node's class when it is instantiated.
             invalidate_before: Alternative to version, set this to a time when node logic was changed. Prefer version when possible.
             force: The node will be always recomputed. Use this sparingly, prefer other solutions when possible.
             manual_override_func: Change the output manually. Experimental - may become obsoleted.
+            default_arg_to_set: What will be set if AddedNode.set() is called without arg=.
 
         Returns:
             A representation of the node. It can be passed to other nodes as input.
@@ -106,14 +157,16 @@ class ProcessGraph:
         # Create the underlying node and its instance.
         node_instance = internal_graph_node.AddedNode(
             id=id,
-            version=version,
             node_class=node_class,
-            constructor_args=constructor_kwargs or {},
             inputs=inputs,
-            on_result=self._on_node_result,
+            version=version,
+            volatile=volatile,
+            constructor_args=constructor_kwargs or {},
             invalidate_before=invalidate_before,
+            on_result=self._on_node_result,
             manual_override_func=manual_override_func,
             dry_run=self._dry_run,
+            default_arg_to_set=default_arg_to_set,
         )
         self._all_nodes[id] = node_instance
         # Update DAG.

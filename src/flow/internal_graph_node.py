@@ -48,6 +48,12 @@ class AddedNode:
     # If True, will not initialize node constructors, will not compute, and will not save.
     dry_run: bool
 
+    # If volatile, will not trip dependant nodes, and will be recomputed every time.
+    volatile: bool
+
+    # Which arg will be set if .set() is called without arg name.
+    default_arg_to_set: str | None
+
     # Set to true if any dependant nodes used this, and an override changed the value.
     _was_overridden_in_dependancy: bool = False
 
@@ -91,10 +97,15 @@ class AddedNode:
         self.reset()
         gc.collect()
 
-    def set(self, arg_name: str, value: Any):
-        if arg_name not in self.inputs:
-            raise ValueError(f"Argument was not found in add_node(...): {arg_name}")
-        self.inputs[arg_name] = value
+    def set_value(self, value: Any) -> None:
+        if self.default_arg_to_set is None:
+            raise ValueError("No default arg to set")
+        self.set(self.default_arg_to_set, value)
+
+    def set(self, arg: str, value: Any) -> None:
+        if arg not in self.inputs:
+            raise ValueError(f"Argument was not found in add_node(...): {arg}")
+        self.inputs[arg] = value
 
     def to_persist(self) -> dict[str, Any]:
         result = {
@@ -105,8 +116,10 @@ class AddedNode:
                 "time": self._time,
             },
         }
+        assert isinstance(result["meta"], dict)
+        if self.volatile:
+            result["meta"]["volatile"] = True
         if self._was_overridden_in_dependancy:
-            assert isinstance(result["meta"], dict)
             result["meta"]["overriden"] = True
         result["version"] = self._result_version
         return result
@@ -181,9 +194,14 @@ class AddedNode:
         self._time = time.time() - start
         self.result_timestamp = datetime.datetime.now().timestamp()
         self._result_version = self.version
-        self.on_result(self)
+        if not self.volatile:
+            # Do not trigger update for volatile nodes.
+            # As they are always recomputed, we will store the result only if they get used.
+            self.on_result(self)
 
     def _needs_update(self) -> bool:
+        if self.volatile:
+            return True
         if not self.has_result():
             logging.info(f"Needs update ({self.id}): {self.name} because no result")
             return True
@@ -204,7 +222,8 @@ class AddedNode:
             del input_name  # Unused
             if isinstance(input_val, AddedNode):
                 if (
-                    input_val.result_timestamp is not None
+                    not input_val.volatile
+                    and input_val.result_timestamp is not None
                     and input_val.result_timestamp > self.result_timestamp
                 ):
                     logging.info(

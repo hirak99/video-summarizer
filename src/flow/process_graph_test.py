@@ -8,7 +8,7 @@ from . import internal_graph_node
 from . import process_graph
 from . import process_node
 
-from typing import override
+from typing import Any, override
 
 # pyright: reportPrivateUsage=false
 
@@ -56,6 +56,14 @@ def _decrement_graph(
     return graph, nodes
 
 
+def _results_without_meta(graph: process_graph.ProcessGraph) -> dict[str, Any]:
+    # Remove things like output_ts and time for test comparisons.
+    result = graph._results_dict.copy()
+    for result_item in result.values():
+        del result_item["meta"]
+    return result
+
+
 class TestProcessGraph(unittest.TestCase):
     def test_simple_graph_execution(self):
         graph = process_graph.ProcessGraph()
@@ -71,11 +79,7 @@ class TestProcessGraph(unittest.TestCase):
             1: {"name": "SumInt", "output": 3, "version": 0},
             2: {"name": "SumInt", "output": 6, "version": 2},
         }
-        result = graph._results_dict.copy()
-        # Don't care about things like output_ts and time.
-        for result_item in result.values():
-            del result_item["meta"]
-        self.assertEqual(result, expected_results_dict)
+        self.assertEqual(_results_without_meta(graph), expected_results_dict)
 
     def test_compute_only_once(self):
         graph = process_graph.ProcessGraph()
@@ -150,11 +154,11 @@ class TestProcessGraph(unittest.TestCase):
 
     def test_constant_node(self):
         graph = process_graph.ProcessGraph()
-        node1 = graph.add_node(1, process_node.constant(), {"value": "hello"})
+        node1 = graph.add_constant_node(1, name="test_constant", value="hello")
         self.assertEqual(graph.run_upto([node1]), "hello")
 
         graph.reset()
-        node1.set("value", "world")
+        node1.set_value("world")
         self.assertEqual(graph.run_upto([node1]), "world")
 
     def test_function_node(self):
@@ -350,6 +354,51 @@ class TestProcessGraph(unittest.TestCase):
                 release_resources_after=nodes,
                 fault_tolerant=False,  # On error, do not continue.
             )
+
+    def test_volatile(self):
+        graph = process_graph.ProcessGraph()
+        node1 = graph.add_constant_node(1, name="test_constant", value=2)
+        node2 = graph.add_node(2, SumInt, {"a": node1, "b": node1})
+
+        graph.run_upto([node2])
+
+        sum_node2: SumInt = node2._node  # pyright: ignore
+        self.assertEqual(node2.result, 4)
+        self.assertEqual(sum_node2.process_call_count, 1)
+        self.assertEqual(
+            _results_without_meta(graph),
+            {
+                1: {"name": "test_constant", "output": 2, "version": 0},
+                2: {"name": "SumInt", "output": 4, "version": 0},
+            },
+        )
+
+        node1.set_value(3)
+        graph.run_upto([node2])
+        self.assertEqual(sum_node2.process_call_count, 1)
+        self.assertEqual(node2.result, 4)
+        self.assertEqual(
+            _results_without_meta(graph),
+            {
+                # A volatile node will be always rerun.
+                1: {"name": "test_constant", "output": 3, "version": 0},
+                # But it will not trigger dependant nodes to update.
+                2: {"name": "SumInt", "output": 4, "version": 0},
+            },
+        )
+
+        # However if dependant node is recomputed for any other reason, it will use the new value of volatile node.
+        node2.version = 1
+        graph.run_upto([node2])
+        self.assertEqual(sum_node2.process_call_count, 2)
+        self.assertEqual(node2.result, 6)
+        self.assertEqual(
+            _results_without_meta(graph),
+            {
+                1: {"name": "test_constant", "output": 3, "version": 0},
+                2: {"name": "SumInt", "output": 6, "version": 1},
+            },
+        )
 
 
 if __name__ == "__main__":
