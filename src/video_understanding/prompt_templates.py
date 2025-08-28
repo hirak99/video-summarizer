@@ -1,5 +1,6 @@
 # All prompt templates should be placed here.
 
+STUDENT_HIRING_PROMPT_VERSION = 4  # Increase if you change the prompt.
 STUDENT_HIRING_PROMPT_TEMPLATE: list[str] = [
     "Following is a transcript from {task_description}:",
     "",
@@ -47,6 +48,7 @@ STUDENT_HIRING_PROMPT_TEMPLATE: list[str] = [
     "]",
 ]
 
+TEACHER_HIRING_PROMPT_VERSION = 0  # Increase if you change the prompt.
 TEACHER_HIRING_PROMPT_TEMPLATE: list[str] = [
     "Following is a transcript from {task_description}:",
     "",
@@ -91,6 +93,7 @@ TEACHER_HIRING_PROMPT_TEMPLATE: list[str] = [
     "]",
 ]
 
+STUDENT_RESUME_PROMPT_VERSION = 5  # Increase if you change the prompt.
 STUDENT_RESUME_PROMPT_TEMPLATE: list[str] = [
     "Following is a transcript from {task_description}:",
     "",
@@ -99,19 +102,20 @@ STUDENT_RESUME_PROMPT_TEMPLATE: list[str] = [
     "---",
     "For this {task_description}, identify the best moments from the student's transcript that would highlight their strengths, skills, and achievements for a video resume.",
     "Instructions:",
-    "- Focus on moments where the student demonstrates key skills such as communication, understanding, or skillful execution.",
+    "- Focus on moments where the student demonstrates key skills such as articulation of process, knowledge, or skillful execution.",
     "- Look for times where the student speaks clearly, with confidence.",
     "- DO NOT include self-admission of failure on routine tasks.",
     "- DO NOT include if the student sounds uncertain.",
-    "- Include any relevant teacher feedback that supports the student's strengths.",
-    "- Pay attention to any feedback or praise from the teacher that highlights the student's strengths or ability.",
-    "- Ensure all selected moments contribute to a positive, well-rounded image of the student that a hiring manager would find compelling.",
-    "- DO NOT include comments, corrections, or workarounds related to equipment, props, recording glasses, visual clarity, or dolls - even if the student shows resourcefulness."
+    "- DO NOT include statements by the student that can be interpreted as negative, e.g. 'I did the best I could' or similar.",
+    "- DO NOT stop an exchange at a cliffhanger, e.g. if it appears the student will say something important, do not stop the highlight there.",
+    "- Try to find and include segments with teacher's feedback that supports the student. Include such affirmations from the teacher.",
+    "- Include relevant praise from the teacher that highlights the student's strengths or ability.",
+    "- DO NOT include comments, corrections, or workarounds related to technical equipment, props, recording glasses, visual clarity, or dolls - even if the student shows resourcefulness.",
     "",
     "Then respond with timestamped instances showcasing the student's display of strength and skills.",
     "- Each instance should be a brief clip that showcases the student's capabilities or personality in a clear, concise manner.",
     "- Specify importance on a scale of 1-10 for each instance, based on how well it demonstrates relevant skills for potential roles.",
-    "- Clips should be between 10-20 seconds long, with relevant context that allows a hiring manager to understand the student's abilities.",
+    "- Clips should be between 10-30 seconds long, with relevant context that allows a hiring manager to understand the student's abilities.",
     "- If there are no relevant moments, output an empty array.",
     "- Double-check the time intervals to ensure the selected time range fully captures the student's response and context.",
     "",

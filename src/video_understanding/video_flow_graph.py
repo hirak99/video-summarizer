@@ -3,6 +3,7 @@ import json
 import logging
 import os
 
+from . import prompt_templates
 from . import video_config
 from ..flow import internal_graph_node
 from ..flow import process_graph
@@ -122,6 +123,9 @@ class VideoFlowGraph:
         )
         if not video_config.ENABLE_VISION:
             self._vision_process_node = None
+
+        # Increase this if the HighlightsSelector logic changes.
+        highlights_logic_ver = 0
         self.highlights_student_hiring = graph.add_node(
             10,
             highlights_selector.HighlightsSelector,
@@ -133,7 +137,7 @@ class VideoFlowGraph:
                 "bad_video_segments_file": video_quality_profile_node,
                 "out_file_stem": self._out_stem_const,
             },
-            version=4,
+            version=f"{highlights_logic_ver}.{prompt_templates.STUDENT_HIRING_PROMPT_VERSION}",
         )
         self.highlights_student_resume = graph.add_node(
             15,
@@ -146,7 +150,7 @@ class VideoFlowGraph:
                 "bad_video_segments_file": video_quality_profile_node,
                 "out_file_stem": self._out_stem_const,
             },
-            version=4,
+            version=f"{highlights_logic_ver}.{prompt_templates.STUDENT_RESUME_PROMPT_VERSION}",
         )
         self.highlights_teacher_hiring = graph.add_node(
             16,
@@ -159,7 +163,9 @@ class VideoFlowGraph:
                 "bad_video_segments_file": video_quality_profile_node,
                 "out_file_stem": self._out_stem_const,
             },
+            version=f"{highlights_logic_ver}.{prompt_templates.TEACHER_HIRING_PROMPT_VERSION}",
         )
+
         self.ocr_detect_node = graph.add_node(
             12,
             ocr_detector.OcrDetector,
@@ -172,10 +178,10 @@ class VideoFlowGraph:
 
         # Final target node(s) for all files.
         final_nodes: list[internal_graph_node.AddedNode] = [
+            self.ocr_detect_node,
             self.highlights_student_hiring,
             self.highlights_student_resume,
             self.highlights_teacher_hiring,
-            self.ocr_detect_node,
         ]
         if makeviz:
             final_nodes.append(visualize_node)

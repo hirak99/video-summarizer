@@ -34,7 +34,8 @@ from .utils import file_conventions
 # 7.7.1 - Updated resume prompt.
 # 7.7.2 - Further updated resume prompt.
 # 7.8 - Implemented automatic inadmissible segment ("choppiness") detection on videos.
-VERSION = "7.8"
+# 7.8.1. - Iteration of prompts.
+VERSION = "7.8.1"
 
 _HOME = pathlib.Path(os.environ["HOME"])
 VIDEOS_DIR = _HOME / "data/videos"
