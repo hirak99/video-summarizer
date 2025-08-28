@@ -42,7 +42,7 @@ class VideoFlowGraph:
                 "source_file": self._source_file_const,
                 "out_file_stem": self._out_stem_const,
             },
-            version=1,
+            version=2,
         )
         transcribe_node = graph.add_node(
             2,
