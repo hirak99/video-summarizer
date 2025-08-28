@@ -48,7 +48,8 @@ def _decrement_graph(
 
     graph = process_graph.ProcessGraph()
 
-    n1 = graph.add_constant_node(1, name="test_constant", value=0)
+    n1 = graph.add_constant_node(1, name="test_constant")
+
     nodes = [n1]
     for i in range(2, num_nodes + 1):
         nodes.append(graph.add_node(i, TestNode, {"a": nodes[-1]}))
@@ -154,25 +155,15 @@ class TestProcessGraph(unittest.TestCase):
 
     def test_constant_node(self):
         graph = process_graph.ProcessGraph()
-        node1 = graph.add_constant_node(1, name="test_constant", value="hello")
+
+        node1 = graph.add_constant_node(1, name="test_constant")
+        node1.set_value("hello")
         self.assertEqual(graph.run_upto([node1]), "hello")
 
-        graph.reset()
+        # Note: Constants are passive, so always recomputed.
+        # If it were not passive, we would have had to graph.reset().
         node1.set_value("world")
         self.assertEqual(graph.run_upto([node1]), "world")
-
-    def test_persistence_partial(self):
-        graph = process_graph.ProcessGraph()
-        const = graph.add_constant_node(1, name="test_constant", value=2)
-        graph.run_upto([const])
-
-        results_dict = json.loads(json.dumps(graph._results_dict))
-
-        graph = process_graph.ProcessGraph()
-        const = graph.add_constant_node(1, name="test_constant", value=2)
-        sum_node = graph.add_node(2, SumInt, {"a": 1, "b": const})
-        graph._load_results_dict(results_dict)
-        self.assertEqual(graph.run_upto([sum_node]), 3)
 
     def test_persistence(self):
         def make_graph():
@@ -336,7 +327,8 @@ class TestProcessGraph(unittest.TestCase):
 
     def test_volatile(self):
         graph = process_graph.ProcessGraph()
-        node1 = graph.add_constant_node(1, name="test_constant", value=2)
+        node1 = graph.add_constant_node(1, name="test_constant")
+        node1.set_value(2)
         node2 = graph.add_node(2, SumInt, {"a": node1, "b": node1})
 
         graph.run_upto([node2])

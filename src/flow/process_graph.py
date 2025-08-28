@@ -169,9 +169,7 @@ class ProcessGraph:
         # Return the instance so that it can be used as inputs to other nodes.
         return node_instance
 
-    def add_constant_node(
-        self, id: int, *, name: str, value: Any = None
-    ) -> internal_graph_node.AddedNode:
+    def add_constant_node(self, id: int, *, name: str) -> internal_graph_node.AddedNode:
         """Convenience method. You can use .set_value() to set the value.
 
         Constants are passive by default, they do not trigger updates even if
@@ -180,7 +178,6 @@ class ProcessGraph:
 
         Args:
             id: Node id. name: Name of the constant.
-            value: Initial value if any. You can also ignore this and use .set_value(), which is necessary for batch processing.
 
         Returns:
             The node instance.
@@ -188,7 +185,7 @@ class ProcessGraph:
         return self.add_node(
             id,
             _constant_node(name),
-            {"value": value},
+            {"value": None},
             passive=True,
             default_arg_to_set="value",
         )
