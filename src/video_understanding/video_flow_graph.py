@@ -2,7 +2,6 @@ import functools
 import json
 import logging
 import os
-import pathlib
 
 from . import video_config
 from ..flow import internal_graph_node
@@ -20,16 +19,6 @@ from .video_flow_nodes import video_flow_types
 from .video_flow_nodes import video_quality_profiler
 from .video_flow_nodes import vision_processor
 from .video_flow_nodes import voice_separator
-
-
-def _get_output_stem(
-    source_file: str, old_root: pathlib.Path, new_root: pathlib.Path
-) -> str:
-    out_path = os.path.join(
-        new_root,
-        os.path.relpath(os.path.dirname(source_file), old_root),
-    )
-    return os.path.join(out_path, os.path.splitext(os.path.basename(source_file))[0])
 
 
 class VideoFlowGraph:
@@ -200,11 +189,41 @@ class VideoFlowGraph:
         ]
 
     def persist_graph_for(self, video_path: str):
-        # This looks like ".../path/to/WORKSPACE_DIR/movie_file_name[no-ext]".
-        out_stem = _get_output_stem(
-            video_path, video_config.VIDEOS_DIR, video_config.WORKSPACE_DIR
+        # This looks like ".../WORKSPACE_DIR/path/to/video_root".
+        out_path = os.path.join(
+            video_config.WORKSPACE_DIR,
+            os.path.relpath(os.path.dirname(video_path), video_config.VIDEOS_DIR),
         )
-        self.graph.persist(out_stem + ".process_graph_state.json")
+
+        # This looks like "sample_movie.mkv".
+        video_basename = os.path.basename(video_path)
+
+        # Use a directory per video.
+        results_dir = os.path.join(out_path, video_basename)
+        if not os.path.isdir(results_dir):
+            os.mkdir(results_dir)
+
+        persist_path = os.path.join(results_dir, "graph_state.json")
+
+        # Persist path old is there for historical reasons. Ideally we should put it inside results dir.
+        # This looks like ".../WORKSPACE_DIR/path/to/video_root/video_name[no-ext]".
+        persist_path_old = (
+            os.path.join(out_path, os.path.splitext(video_basename)[0])
+            + ".process_graph_state.json"
+        )
+        # So if the old file exists, move it. We don't want two sources of truth, so we do not leave the old file.
+        if os.path.exists(persist_path_old):
+            if os.path.exists(persist_path):
+                raise ValueError("Both old and new persist-paths exist")
+            logging.info("Moving old graph state to new path")
+            os.rename(persist_path_old, persist_path)
+
+        self.graph.persist(persist_path)
+
+        # Stuff will be appended to the stem, like `out_stem + ".transcription.json"`.
+        out_stem = os.path.join(results_dir, "video_flow_data")
+
+        # Set the constants.
         self._source_file_const.set("value", video_path)
         self._out_stem_const.set("value", out_stem)
 
