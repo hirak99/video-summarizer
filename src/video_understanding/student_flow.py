@@ -21,8 +21,8 @@ def _main(students: list[str], teachers: list[str], force_rerun: bool):
 
     # Next Node ID: 5
     graph = process_graph.ProcessGraph()
-    student_const = graph.add_constant_node(0, name="students_const")
-    teacher_const = graph.add_constant_node(4, name="teachers_const")
+    student_const = graph.add_constant_node(0, name="students_const", type=str)
+    teacher_const = graph.add_constant_node(4, name="teachers_const", type=str)
     highlight_curate_node = graph.add_node(
         1,
         hhc.HighlightCurator,

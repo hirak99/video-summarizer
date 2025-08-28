@@ -7,6 +7,7 @@ import time
 from . import graph_algorithms
 from . import internal_graph_node
 from . import process_node
+from . import type_util
 
 from typing import Any, Callable, Generic, override, Type, TypeVar
 
@@ -34,7 +35,7 @@ class _BatchStats(Generic[_BatchItemT]):
     failures: list[_BatchFailure[_BatchItemT]]
 
 
-def _constant_node(name: str) -> Type[process_node.ProcessNode]:
+def _constant_node(name: str, value_type: Any) -> Type[process_node.ProcessNode]:
     """Must pass "value" as the single argument.
 
     Usage example -
@@ -50,7 +51,7 @@ def _constant_node(name: str) -> Type[process_node.ProcessNode]:
 
     class _ConstantNode(process_node.ProcessNode):
         @override
-        def process(self, value):
+        def process(self, value: Any):
             logging.info(f"Constant is {value}")
             return value
 
@@ -64,6 +65,10 @@ def _constant_node(name: str) -> Type[process_node.ProcessNode]:
             if list(kwargs.keys()) != ["value"]:
                 raise ValueError(
                     f"Constants must have one 'value' argument, but found: {kwargs}"
+                )
+            if not type_util.matches(kwargs["value"], value_type):
+                raise TypeError(
+                    f"Type not matched: {kwargs['value']!r} is not {value_type!r}"
                 )
 
     return _ConstantNode
@@ -169,7 +174,12 @@ class ProcessGraph:
         # Return the instance so that it can be used as inputs to other nodes.
         return node_instance
 
-    def add_constant_node(self, id: int, *, name: str) -> internal_graph_node.AddedNode:
+    # Note: Conscious decision was made to use `type` as the arg name here.
+    # It can create confusion if we want to use type(x) inside this function.
+    # But the tradeoff is worth it for intuitive call signature for clients.
+    def add_constant_node(
+        self, id: int, *, name: str, type: Any
+    ) -> internal_graph_node.AddedNode:
         """Convenience method. You can use .set_value() to set the value.
 
         Constants are passive by default, they do not trigger updates even if
@@ -178,13 +188,15 @@ class ProcessGraph:
 
         Args:
             id: Node id. name: Name of the constant.
+            name: Name of the constant.
+            type: Type of the constant, e.g. int, str, etc.
 
         Returns:
             The node instance.
         """
         return self.add_node(
             id,
-            _constant_node(name),
+            _constant_node(name, type),
             {"value": None},
             passive=True,
             default_arg_to_set="value",

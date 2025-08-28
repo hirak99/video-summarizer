@@ -30,8 +30,10 @@ class VideoFlowGraph:
         # Don't re-use purged node ids.
         # Next Id: 18
         # Id(s) deprecated: 3, 11.
-        self._source_file_const = graph.add_constant_node(0, name="Source Video")
-        self._out_stem_const = graph.add_constant_node(1, name="Out Stem")
+        self._source_file_const = graph.add_constant_node(
+            0, name="Source Video", type=str
+        )
+        self._out_stem_const = graph.add_constant_node(1, name="Out Stem", type=str)
         video_quality_profile_node = graph.add_node(
             17,
             video_quality_profiler.VideoQualityProfiler,

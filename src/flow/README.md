@@ -18,7 +18,7 @@ Usage -
 ```python
 graph = process_graph.ProcessGraph()
 
-node_const = graph.add_constant_node(id=0, name="MyConst")
+node_const = graph.add_constant_node(id=0, name="MyConst", type=int)
 node1 = graph.add_node(1, SumInt, {"a": node_const, "b": 200})
 node2 = graph.add_node(2, SumInt, {"a": 300, "b": node1})
 
@@ -63,7 +63,7 @@ You can take advantage of these via the `graph.batch_process(...)` method.
 ```python
 graph = process_graph.ProcessGraph()
 
-node_const = graph.add_constant_node(id=0, name="MyConst")
+node_const = graph.add_constant_node(id=0, name="MyConst", type=int)
 node1 = graph.add_node(1, SumInt, {"a": node_const, "b": 200})
 
 def prep_fn(index: int, item: Any) -> None:
