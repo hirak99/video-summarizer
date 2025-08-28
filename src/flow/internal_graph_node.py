@@ -49,6 +49,7 @@ class AddedNode:
     dry_run: bool
 
     # If volatile, will not trip dependant nodes, and will be recomputed every time.
+    # Volatile nodes are persisted nonetheless. They are run once like normal nodes during batch processing.
     volatile: bool
 
     # Which arg will be set if .set() is called without arg name.
@@ -194,10 +195,7 @@ class AddedNode:
         self._time = time.time() - start
         self.result_timestamp = datetime.datetime.now().timestamp()
         self._result_version = self.version
-        if not self.volatile:
-            # Do not trigger update for volatile nodes.
-            # As they are always recomputed, we will store the result only if they get used.
-            self.on_result(self)
+        self.on_result(self)
 
     def _needs_update(self) -> bool:
         if self.volatile:

@@ -6,7 +6,6 @@ import os
 
 from . import video_config
 from ..flow import process_graph
-from ..flow import process_node
 from .student_flow_nodes import compile_options
 from .student_flow_nodes import eval_template_maker
 from .student_flow_nodes import hiring_highlight_curator as hhc
@@ -22,12 +21,8 @@ def _main(students: list[str], teachers: list[str], force_rerun: bool):
 
     # Next Node ID: 5
     graph = process_graph.ProcessGraph()
-    student_const = graph.add_node(
-        0, process_node.constant("students_const"), {"value": None}
-    )
-    teacher_const = graph.add_node(
-        4, process_node.constant("teachers_const"), {"value": None}
-    )
+    student_const = graph.add_constant_node(0, name="students_const")
+    teacher_const = graph.add_constant_node(4, name="teachers_const")
     highlight_curate_node = graph.add_node(
         1,
         hhc.HighlightCurator,
@@ -84,8 +79,8 @@ def _main(students: list[str], teachers: list[str], force_rerun: bool):
                 else:
                     logging.info("Forcing a rerun despite being up to date.")
 
-        student_const.set("value", student)
-        teacher_const.set("value", teacher)
+        student_const.set_value(student)
+        teacher_const.set_value(teacher)
         graph.run_upto([movie_compile_node, eval_template_node])
 
         if video_config.TESTING_MODE:

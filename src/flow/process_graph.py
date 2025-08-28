@@ -105,18 +105,6 @@ class ProcessGraph:
         if self._auto_save_path is not None:
             self._save_to(self._auto_save_path)
 
-    def add_constant_node(
-        self, id: int, *, name: str, value: Any = None
-    ) -> internal_graph_node.AddedNode:
-        """Convenience method. You can use .set_value() to set the value."""
-        return self.add_node(
-            id,
-            _constant_node(name),
-            {"value": value},
-            volatile=True,
-            default_arg_to_set="value",
-        )
-
     def add_node(
         self,
         id: int,
@@ -176,6 +164,18 @@ class ProcessGraph:
                 self._dependencies[id].add(val.id)
         # Return the instance so that it can be used as inputs to other nodes.
         return node_instance
+
+    def add_constant_node(
+        self, id: int, *, name: str, value: Any = None
+    ) -> internal_graph_node.AddedNode:
+        """Convenience method. You can use .set_value() to set the value."""
+        return self.add_node(
+            id,
+            _constant_node(name),
+            {"value": value},
+            volatile=True,
+            default_arg_to_set="value",
+        )
 
     def reset(self):
         """Clear cached information."""
@@ -245,7 +245,7 @@ class ProcessGraph:
         self,
         *,
         batch_items: list[_BatchItemT],
-        final_nodes: list[internal_graph_node.AddedNode],
+        run_nodes: list[internal_graph_node.AddedNode],
         prep_fn: Callable[[int, _BatchItemT], None],
         post_fn: Callable[[int, _BatchItemT], None] | None = None,
         release_resources_after: list[internal_graph_node.AddedNode] | None = None,
@@ -255,8 +255,8 @@ class ProcessGraph:
         """Runs the nodes breath-first, for efficient resource managmement.
 
         Args:
-            batch_items: The list of items to process.
-            final_nodes: The nodes which need evaluated. All dependant nodes will automatically be evaluated.
+            batch_items: The list of inputs on which all the nodes will be run.
+            run_nodes: The nodes which need computed. All dependant nodes will automatically be evaluated.
             prep_fn: Called before a node is run. This (1) must call graph.persist(FILE_BASED_ON_ITEM), and (2) should set constants.
             post_fn: Called after a node is run.
             release_resources_after: Nodes which are used for heavy computation. When these are used, resources are freed up.
@@ -268,7 +268,7 @@ class ProcessGraph:
         # Indexed by the items.
         indices_with_errors: set[int] = set()
 
-        nodes_to_run = self._topological_sort(final_nodes)
+        nodes_to_run = self._topological_sort(run_nodes)
 
         for node_index, node in enumerate(nodes_to_run):
             is_last_node = node_index == len(nodes_to_run) - 1

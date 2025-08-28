@@ -7,7 +7,6 @@ from . import prompt_templates
 from . import video_config
 from ..flow import internal_graph_node
 from ..flow import process_graph
-from ..flow import process_node
 from .video_flow_nodes import caption_visualizer
 from .video_flow_nodes import highlights_selector
 from .video_flow_nodes import ocr_detector
@@ -31,10 +30,8 @@ class VideoFlowGraph:
         # Don't re-use purged node ids.
         # Next Id: 18
         # Id(s) deprecated: 3, 11.
-        self._source_file_const = graph.add_node(
-            0, process_node.constant("Source Video"), {"value": ""}
-        )
-        self._out_stem_const = graph.add_node(1, process_node.constant(), {"value": ""})
+        self._source_file_const = graph.add_constant_node(0, name="Source Video")
+        self._out_stem_const = graph.add_constant_node(1, name="Out Stem")
         video_quality_profile_node = graph.add_node(
             17,
             video_quality_profiler.VideoQualityProfiler,
@@ -230,8 +227,8 @@ class VideoFlowGraph:
         out_stem = os.path.join(results_dir, "video_flow_data")
 
         # Set the constants.
-        self._source_file_const.set("value", video_path)
-        self._out_stem_const.set("value", out_stem)
+        self._source_file_const.set_value(video_path)
+        self._out_stem_const.set_value(out_stem)
 
     def run(self, *, all_files_to_process: list[str]):
 
@@ -244,7 +241,7 @@ class VideoFlowGraph:
 
         self.graph.process_batch(
             batch_items=all_files_to_process,
-            final_nodes=self._final_nodes,
+            run_nodes=self._final_nodes,
             prep_fn=functools.partial(prep_fn, count=len(all_files_to_process)),
             post_fn=lambda file_no, path: video_config.repeated_warnings(),
             release_resources_after=self._release_resources_after,

@@ -48,7 +48,7 @@ def _decrement_graph(
 
     graph = process_graph.ProcessGraph()
 
-    n1 = graph.add_node(1, process_node.constant(), {"value": 0})
+    n1 = graph.add_constant_node(1, name="test_constant", value=0)
     nodes = [n1]
     for i in range(2, num_nodes + 1):
         nodes.append(graph.add_node(i, TestNode, {"a": nodes[-1]}))
@@ -161,39 +161,18 @@ class TestProcessGraph(unittest.TestCase):
         node1.set_value("world")
         self.assertEqual(graph.run_upto([node1]), "world")
 
-    def test_function_node(self):
-        graph = process_graph.ProcessGraph()
-
-        # Add a named function node.
-        def sum_func(a: int, b: int) -> int:
-            return a + b
-
-        node1 = graph.add_node(1, process_node.function(sum_func), {"a": 1, "b": 2})
-
-        # Add a lambda function node.
-        node2 = graph.add_node(
-            2, process_node.function(lambda a, b: a + b), {"a": node1, "b": 3}
-        )
-
-        # Test.
-        self.assertEqual(graph.run_upto([node2]), 6)
-
-        # Check that we get expected names for the nodes.
-        self.assertEqual(node1.name, "sum_func")
-        self.assertEqual(node2.name, "<lambda>")
-
     def test_persistence_partial(self):
         graph = process_graph.ProcessGraph()
-        const = graph.add_node(1, process_node.constant(), {"value": 2})
+        const = graph.add_constant_node(1, name="test_constant", value=2)
         graph.run_upto([const])
 
         results_dict = json.loads(json.dumps(graph._results_dict))
 
         graph = process_graph.ProcessGraph()
-        const = graph.add_node(1, process_node.constant(), {"value": 2})
-        func = graph.add_node(2, process_node.function(lambda n: n + 1), {"n": const})
+        const = graph.add_constant_node(1, name="test_constant", value=2)
+        sum_node = graph.add_node(2, SumInt, {"a": 1, "b": const})
         graph._load_results_dict(results_dict)
-        self.assertEqual(graph.run_upto([func]), 3)
+        self.assertEqual(graph.run_upto([sum_node]), 3)
 
     def test_persistence(self):
         def make_graph():
@@ -287,7 +266,7 @@ class TestProcessGraph(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, r"persist\(\) must be called"):
             graph.process_batch(
                 batch_items=[11, 9, 5, 10],
-                final_nodes=[nodes[-1]],
+                run_nodes=[nodes[-1]],
                 prep_fn=prep_fn,
                 release_resources_after=nodes,
             )
@@ -296,13 +275,13 @@ class TestProcessGraph(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             graph, nodes = _decrement_graph(num_nodes=10)
 
-            def prep_fn(index, item):
+            def prep_fn(index: int, item: Any) -> None:
                 nodes[0].set("value", item)
                 graph.persist(os.path.join(temp_dir, "persist" + str(index)))
 
             stats = graph.process_batch(
                 batch_items=[10, 9, 21, 5],
-                final_nodes=[nodes[-1]],
+                run_nodes=[nodes[-1]],
                 prep_fn=prep_fn,
                 release_resources_after=nodes,
             )
@@ -332,7 +311,7 @@ class TestProcessGraph(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, r"Test error"):
                 graph.process_batch(
                     batch_items=[11, 2, 1, 10],
-                    final_nodes=[nodes[-1]],
+                    run_nodes=[nodes[-1]],
                     prep_fn=prep_fn,
                     release_resources_after=nodes,
                     fault_tolerant=False,  # Make it fail immediately.
@@ -349,7 +328,7 @@ class TestProcessGraph(unittest.TestCase):
             # Does not fail.
             graph.process_batch(
                 batch_items=[11, 10],
-                final_nodes=[nodes[-1]],
+                run_nodes=[nodes[-1]],
                 prep_fn=prep_fn,
                 release_resources_after=nodes,
                 fault_tolerant=False,  # On error, do not continue.

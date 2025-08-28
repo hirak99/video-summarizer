@@ -17,9 +17,12 @@ class SumInt(process_node.Processor):
 Usage -
 ```python
 graph = process_graph.ProcessGraph()
-node1 = graph.add_node(1, SumInt, {"a": 100, "b": 200})
-node2 = graph.add_node(2, SumInt, {"a": node1, "b": node1})
 
+node_const = graph.add_constant_node(id=0, name="MyConst")
+node1 = graph.add_node(1, SumInt, {"a": node_const, "b": 200})
+node2 = graph.add_node(2, SumInt, {"a": 300, "b": node1})
+
+node_const.set_value(100)
 result = graph.run_upto(node2)  # 600
 ```
 
@@ -56,6 +59,33 @@ Nodes in the graph are implemented as subclasses of `process_node.Processor`.  T
 Some optimizations that batch processing handles is given below.
 
 You can take advantage of these via the `graph.batch_process(...)` method.
+
+```python
+graph = process_graph.ProcessGraph()
+
+node_const = graph.add_constant_node(id=0, name="MyConst")
+node1 = graph.add_node(1, SumInt, {"a": node_const, "b": 200})
+
+def prep_fn(index: int, item: Any) -> None:
+    # Initialize constants based on the item.
+    nodes[0].set_value(item)
+    # You must persist the data for batch running.
+    graph.persist(f"persist_file{index}.json")
+
+# Results will be saved into the persisted files.
+stats = graph.process_batch(
+    batch_items=[10, 9, 21, 5],
+    run_nodes=[node1],
+    prep_fn=prep_fn,
+)
+
+# In case of failures, this list will contain each index, item and exception for failures.
+assert len(status.failures) == 0
+```
+
+## Batch Optimizations - Implementation Details
+
+This section contains certain useful
 
 ### Hard Reset
 
