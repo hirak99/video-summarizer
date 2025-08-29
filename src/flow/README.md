@@ -1,6 +1,6 @@
 # Flow: A general purpose ML workflow manager
 
-Process graphs offers persistence, extensibility, generalization and ease of use in building offline ML training and inference workflows.
+Process graphs provide persistence, extensibility, generalization and ease of use for building offline ML training and inference workflows.
 
 Example -
 
@@ -26,7 +26,7 @@ node_const.set_value(100)
 result = graph.run_upto(node2)  # 600
 ```
 
-More complicated flows can be written, as the example bellow. ML pipelines using this can be iterated, extended, and built incrementally.
+More complicated flows can be written, as the example below. ML pipelines using this can be iterated, extended, and built incrementally.
 
 ## Core Classes
 
@@ -35,7 +35,6 @@ For full documentation, please also see the code.
 ### The `ProcessGraph` Class
 
 ([Code](./process_graph.py))
-
 
 The `ProcessGraph` class manages the workflow execution. Key methods include:
 
@@ -54,11 +53,9 @@ Nodes in the graph are implemented as subclasses of `process_node.Processor`.  T
 
 - `process(...) -> Any`: This method defines the computation performed by the node. Specify arguments by name, such as `process(self, video_file: str, diarization: dict[str, Any]) -> str`. It receives keyword arguments based on the `inputs` specified in `add_node`. A runtime check ensures that the `inputs` match keyword and type declared in `process(...)`.
 
-## Batch Optimizations
+## Batch Processing
 
-Some optimizations that batch processing handles is given below.
-
-You can take advantage of these via the `graph.batch_process(...)` method.
+If you need to process a batch of inputs, using the `graph.batch_process(...)` method can efficiently manage resources and offer fault tolerance.
 
 ```python
 graph = process_graph.ProcessGraph()
@@ -83,15 +80,17 @@ stats = graph.process_batch(
 assert len(status.failures) == 0
 ```
 
-## Batch Optimizations - Implementation Details
+## Batch Processing Implementation Details
 
-This section contains certain useful
+This section explains some of the optimizations that batch-processing offers.
+
+Reading this section is not necessary to take advantage of them - it is here for information only.
 
 ### Hard Reset
 
 Nodes are lazily initialized.
 For incremental runs, if a node's result is cached it is not initialized, saving resources.
-Once initalized, a node's resources may be freed by calling `release_resources()`.
+Once initialized, a node's resources may be freed by calling `release_resources()`.
 
 ```python
 # Hard resetting a graph releases all initialized nodes.
@@ -104,10 +103,9 @@ graph.release_resources()
 # to reset it for a new batch.
 node1.release_resources()
 node2.release_resources()
-
 ```
 
-### Breadth First Execution
+### Breadth-First Execution
 
 Suppose we have the following graph, and every node is resource intensive so that if one is loaded in memory then another cannot be loaded.
 
@@ -123,7 +121,7 @@ flowchart TD;
 
 Suppose that we are interested in running node 6, for a batch of resources.
 
-Then an optimal strategy is to run it breadth-first, i.e. run upto a specific node for the entire batch, and then move on to the next node after a hard reset and so on. I.e.,
+Then an optimal strategy is to run it breadth-first, i.e. run up to a specific node for the entire batch, and then move on to the next node after a hard reset and so on. I.e.,
 - For node j in [1, 2, 4, 5, 6]:
   - Hard reset graph
   - For source in BATCH:
@@ -161,14 +159,13 @@ for i_node, node in enumerate(sorted_nodes):
         ...
 
     # Hard reset if needed.
-    next_node = sorted_nodes[i_node + 1] if node_index + 1 < len(sorted_nodes) else None
+    next_node = sorted_nodes[i_node + 1] if i_node + 1 < len(sorted_nodes) else None
     if node.name() in ['LLMSummary', 'LLMCuration', 'StableDiffusion']:
-        # This node is uses expensive resources.
+        # This node uses expensive resources.
         if (
             next_node is not None and
             node.name().startswith('LLM') != next_node.name().startswith('LLM')
         ):
             # And the next node uses different resources.
             graph.release_resources()
-
 ```

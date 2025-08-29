@@ -23,6 +23,10 @@ def _main(students: list[str], teachers: list[str], force_rerun: bool):
     graph = process_graph.ProcessGraph()
     student_const = graph.add_constant_node(0, name="students_const", type=str)
     teacher_const = graph.add_constant_node(4, name="teachers_const", type=str)
+
+    # The HighlightCurator analyzes video content to find important segments,
+    # filters them based on criteria like importance score and speaker time,
+    # removes overlapping segments, and selects the best highlights for compilation.
     highlight_curate_node = graph.add_node(
         1,
         hhc.HighlightCurator,
@@ -54,7 +58,7 @@ def _main(students: list[str], teachers: list[str], force_rerun: bool):
 
     os.makedirs(persist_dir, exist_ok=True)
 
-    # Exactly one of student, teaacher will be populated.
+    # Process each student or teacher (exactly one of student, teacher will be populated).
     for student, teacher in itertools.chain(
         ((student, None) for student in students),
         ((None, teacher) for teacher in teachers),
@@ -66,7 +70,8 @@ def _main(students: list[str], teachers: list[str], force_rerun: bool):
 
         result_timestamp = highlight_curate_node.result_timestamp
         logging.info(f"{result_timestamp=}")
-        # Check if computation should be skipped.
+
+        # Check if computation should be skipped (if up to date).
         if result_timestamp is not None:
             source_timestamp = hhc.HighlightCurator.check_source_timestamp(
                 student=student, teacher=teacher
