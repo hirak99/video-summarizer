@@ -23,8 +23,8 @@ def _main(
 
     # Next Node ID: 5
     graph = process_graph.ProcessGraph()
-    student_const = graph.add_constant_node(0, name="students_const", type=str)
-    teacher_const = graph.add_constant_node(4, name="teachers_const", type=str)
+    student_const = graph.add_constant_node(0, name="students_const", type=str | None)
+    teacher_const = graph.add_constant_node(4, name="teachers_const", type=str | None)
 
     # The HighlightCurator analyzes video content to find important segments,
     # filters them based on criteria like importance score and speaker time,
