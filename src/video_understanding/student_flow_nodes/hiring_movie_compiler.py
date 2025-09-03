@@ -2,6 +2,7 @@ import logging
 import pathlib
 
 from . import compile_options
+from . import highlights_persister
 from . import hiring_highlight_curator as hhc
 from . import video_graph_node_getter
 from .. import video_config
@@ -28,7 +29,7 @@ class HiringMovieCompiler(process_node.ProcessNode):
         return highlights_log.compiled_movie
 
     def _compile_movie(
-        self, highlights: list[hhc.HighlightData], out_file: str
+        self, highlights: list[highlights_persister.HighlightData], out_file: str
     ) -> None:
         """Compile the chosen highlights into a movie."""
         compiler = movie_compiler.MovieCompiler(compile_options.get_movie_options())

@@ -2,6 +2,7 @@ import json
 import logging
 import os
 
+from . import highlights_persister
 from . import hiring_highlight_curator as hhc
 from .. import prompt_templates
 from ...flow import process_node
@@ -16,7 +17,7 @@ _AUTO_EVAL_PRE_S = 15.0
 _AUTO_EVAL_POST_S = 10.0
 
 
-def _auto_eval_prompt(highlight: hhc.HighlightData) -> list[str]:
+def _auto_eval_prompt(highlight: highlights_persister.HighlightData) -> list[str]:
     return templater.fill(
         prompt_templates.AUTO_EVAL_PROMPT_TEMPLATE,
         {

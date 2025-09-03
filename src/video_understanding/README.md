@@ -57,7 +57,8 @@ Once all the videos are processed, the following is run to summarize across vide
 ```mermaid
 flowchart TD
     X[Original Videos] --> B
-    Y[Selected Highlights] --> A
+    Y[Selected Highlights] --> Persist[Persister]
+    Persist --> A
     Z[PII Detections] -- blur --> B
     A[Highlight Curation] --> B[Compiled Movie]
     A --> C[Auto Eval Templates]

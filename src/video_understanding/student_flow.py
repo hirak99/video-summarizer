@@ -8,6 +8,7 @@ from . import video_config
 from ..flow import process_graph
 from .student_flow_nodes import compile_options
 from .student_flow_nodes import eval_template_maker
+from .student_flow_nodes import highlights_persister
 from .student_flow_nodes import hiring_highlight_curator as hhc
 from .student_flow_nodes import hiring_movie_compiler
 from .utils import logging_utils
@@ -21,10 +22,23 @@ def _main(
 ):
     persist_dir = _OUTDIR / "logs" / compile_options.COMPILATION_TYPE.value
 
-    # Next Node ID: 5
+    # Next Node ID: 6
     graph = process_graph.ProcessGraph()
     student_const = graph.add_constant_node(0, name="students_const", type=str | None)
     teacher_const = graph.add_constant_node(4, name="teachers_const", type=str | None)
+
+    # Simply persists the evals from video_flow.
+    # Can be useful to recreate any previous video.
+    evals_persisted_node = graph.add_node(
+        5,
+        highlights_persister.EvalsPersister,
+        {
+            "student": student_const,
+            "teacher": teacher_const,
+            "out_dir": str(_OUTDIR),
+        },
+        force=True,  # DO NOT change this. Instead use the force_rerun arg.
+    )
 
     # The HighlightCurator analyzes video content to find important segments,
     # filters them based on criteria like importance score and speaker time,
@@ -33,6 +47,8 @@ def _main(
         1,
         hhc.HighlightCurator,
         {
+            # TODO: Fill evals_out from optional arg pointing to previous file to recreate movie from same highlights.
+            "evals_out": evals_persisted_node,
             "student": student_const,
             "teacher": teacher_const,
             "out_dir": str(_OUTDIR),
@@ -40,7 +56,6 @@ def _main(
             "target_duration": target_duration,
         },
         version=4,
-        force=True,  # DO NOT change this. Instead use the force_rerun arg.
     )
     eval_template_node = graph.add_node(
         2,
@@ -76,8 +91,10 @@ def _main(
 
         # Check if computation should be skipped (if up to date).
         if result_timestamp is not None:
-            source_timestamp = hhc.HighlightCurator.check_source_timestamp(
-                student=student, teacher=teacher
+            source_timestamp = (
+                highlights_persister.EvalsPersister.check_source_timestamp(
+                    student=student, teacher=teacher
+                )
             )
             logging.info(f"{source_timestamp=}")
             if source_timestamp <= result_timestamp:

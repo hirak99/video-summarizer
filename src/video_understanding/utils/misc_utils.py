@@ -1,4 +1,5 @@
 import functools
+import hashlib
 import os
 import re
 import unicodedata
@@ -35,3 +36,9 @@ def ensure_not_none(value: _T | None, *, err: str) -> _T:
     if value is None:
         raise ValueError(err)
     return value
+
+
+def fingerprint(data: str) -> str:
+    # Compute a unique 7-char fingerprint.
+    # Used in saved outputs and filenames.
+    return hashlib.sha256(data.encode("utf-8")).hexdigest()[:7]
