@@ -291,11 +291,6 @@ class HighlightCurator(process_node.ProcessNode):
                         )
                     )
 
-        movie_type_str = compile_options.COMPILATION_TYPE.value
-        out_file_basename = (
-            f"{student or teacher}_{movie_type_str}_v{video_config.VERSION}"
-        )
-
         logging.info(f"# highlights curated by LLM: {len(eval_segments)}")
         highlights = _choose_highlights(eval_segments)
         logging.info(f"# highlights chosen: {len(highlights)}")
@@ -305,9 +300,6 @@ class HighlightCurator(process_node.ProcessNode):
             key=lambda x: (file_conventions.sort_key(x.movie), x.evaluation["start"])
         )
 
-        os.makedirs(out_dir, exist_ok=True)
-        out_file = os.path.join(out_dir, f"{out_file_basename}.mp4")
-
         # Drop segments with manually blocked hashes.
         highlights = [
             x
@@ -315,17 +307,31 @@ class HighlightCurator(process_node.ProcessNode):
             if x.fingerprint not in manual_overrides.BAD_HIRING_SEGMENTS
         ]
 
+        # Compute fingerprint to trace this file.
+        full_fingerprint_info = '_'.join(x.fingerprint for x in highlights)
+        full_fingerprint = hashlib.sha256(
+            json.dumps(full_fingerprint_info, sort_keys=True).encode("utf-8")
+        ).hexdigest()[:7]
+
+        # Compiled movie name.
+        movie_type_str = compile_options.COMPILATION_TYPE.value
+        out_file_basename = (
+            f"{student or teacher}_{movie_type_str}_v{video_config.VERSION}_{full_fingerprint}"
+        )
+        os.makedirs(out_dir, exist_ok=True)
+        movie_name = os.path.join(out_dir, f"{out_file_basename}.mp4")
+
         # Save the highlights and info in log.
         highlights_log = HighlightsLog(
             highlights=highlights,
             manual_labels_dir=os.path.realpath(video_config.MANUAL_LABELS_DIR),
-            compiled_movie=out_file,
+            compiled_movie=movie_name,
         )
 
-        highlights_log_file = os.path.join(
-            log_dir, f"{out_file_basename}.hiring_highlight_compiler.json"
+        highlights_out = os.path.join(
+            log_dir, f"{out_file_basename}.curated_highlights.json"
         )
-        with open(highlights_log_file, "w") as file:
+        with open(highlights_out, "w") as file:
             json.dump(highlights_log.model_dump(), file, indent=2)
 
-        return highlights_log_file
+        return highlights_out
