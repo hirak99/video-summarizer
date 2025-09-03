@@ -16,7 +16,9 @@ from .video_flow_nodes import video_flow_types
 _OUTDIR = video_config.VIDEO_SUMMARIES_DIR / "CompiledHighlights"
 
 
-def _main(students: list[str], teachers: list[str], force_rerun: bool):
+def _main(
+    students: list[str], teachers: list[str], force_rerun: bool, target_duration: float
+):
     persist_dir = _OUTDIR / "logs" / compile_options.COMPILATION_TYPE.value
 
     # Next Node ID: 5
@@ -35,6 +37,7 @@ def _main(students: list[str], teachers: list[str], force_rerun: bool):
             "teacher": teacher_const,
             "out_dir": str(_OUTDIR),
             "log_dir": str(persist_dir),
+            "target_duration": target_duration,
         },
         version=4,
         force=True,  # DO NOT change this. Instead use the force_rerun arg.
@@ -128,6 +131,12 @@ if __name__ == "__main__":
         action="store_true",
         help="Force re-run of the pipeline even if results are up to date.",
     )
+    parser.add_argument(
+        "--duration",
+        type=int,
+        default=300,  # 5 minutes
+        help=f"Number of seconds to target for the movie.",
+    )
     args = parser.parse_args()
 
     logging_utils.setup_logging()
@@ -150,4 +159,9 @@ if __name__ == "__main__":
             f"Invalid teachers/students specified for {compile_options.COMPILATION_TYPE}"
         )
 
-    _main(students=args.students, teachers=args.teachers, force_rerun=args.force)
+    _main(
+        students=args.students,
+        teachers=args.teachers,
+        force_rerun=args.force,
+        target_duration=args.duration,
+    )

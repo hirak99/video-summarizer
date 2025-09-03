@@ -21,8 +21,6 @@ from ..video_flow_nodes import video_flow_types
 
 from typing import override
 
-_TARGET_DURATION = 5 * 60
-
 # Remove clips if it's entirely within X second of beginning or end.
 # Typically this may include convo on previous or next lesson.
 _REMOVE_EDGES_SECS = 5
@@ -153,7 +151,9 @@ def _disjointify_highlights(highlights: list[HighlightData]) -> list[HighlightDa
     return result
 
 
-def _choose_highlights(highlights: list[HighlightData]) -> list[HighlightData]:
+def _choose_highlights(
+    highlights: list[HighlightData], target_duration: float
+) -> list[HighlightData]:
     # Keep only highlights with importance.
     highlights = [x for x in highlights if x.evaluation["importance"] >= 5]
     logging.info(f"# important highlights: {len(highlights)}")
@@ -219,7 +219,7 @@ def _choose_highlights(highlights: list[HighlightData]) -> list[HighlightData]:
         session_durations[highlight.movie] += highlight.duration
 
         # Break after adding - allow it to be slightly longer than target duration.
-        if total_duration >= _TARGET_DURATION:
+        if total_duration >= target_duration:
             break
 
     logging.info(f"Total duration: {total_duration:0.2f}")
@@ -257,7 +257,12 @@ class HighlightCurator(process_node.ProcessNode):
 
     @override
     def process(
-        self, student: str | None, teacher: str | None, log_dir: str, out_dir: str
+        self,
+        student: str | None,
+        teacher: str | None,
+        log_dir: str,
+        out_dir: str,
+        target_duration: float,
     ) -> str:
         eval_segments: list[HighlightData] = []
 
@@ -292,7 +297,7 @@ class HighlightCurator(process_node.ProcessNode):
                     )
 
         logging.info(f"# highlights curated by LLM: {len(eval_segments)}")
-        highlights = _choose_highlights(eval_segments)
+        highlights = _choose_highlights(eval_segments, target_duration)
         logging.info(f"# highlights chosen: {len(highlights)}")
 
         # Sort by required order of the session files.
@@ -308,16 +313,14 @@ class HighlightCurator(process_node.ProcessNode):
         ]
 
         # Compute fingerprint to trace this file.
-        full_fingerprint_info = '_'.join(x.fingerprint for x in highlights)
+        full_fingerprint_info = "_".join(x.fingerprint for x in highlights)
         full_fingerprint = hashlib.sha256(
             json.dumps(full_fingerprint_info, sort_keys=True).encode("utf-8")
         ).hexdigest()[:7]
 
         # Compiled movie name.
         movie_type_str = compile_options.COMPILATION_TYPE.value
-        out_file_basename = (
-            f"{student or teacher}_{movie_type_str}_v{video_config.VERSION}_{full_fingerprint}"
-        )
+        out_file_basename = f"{student or teacher}_{movie_type_str}_v{video_config.VERSION}_{full_fingerprint}"
         os.makedirs(out_dir, exist_ok=True)
         movie_name = os.path.join(out_dir, f"{out_file_basename}.mp4")
 
