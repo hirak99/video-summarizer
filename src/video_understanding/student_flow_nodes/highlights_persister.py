@@ -149,7 +149,7 @@ class EvalsPersister(process_node.ProcessNode):
                     )
 
         fingerprint = misc_utils.fingerprint(eval_segments.model_dump_json())
-        out_file_basename = f"raw_evals_{student or teacher}_{compile_options.COMPILATION_TYPE.value}_{fingerprint}.json"
+        out_file_basename = f"segments_e{student or teacher}_{compile_options.COMPILATION_TYPE.value}_{fingerprint}.json"
         out_fname = os.path.join(out_dir, out_file_basename)
 
         with open(out_fname, "w") as f:

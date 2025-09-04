@@ -1,4 +1,5 @@
 import collections
+import datetime
 import itertools
 import json
 import logging
@@ -200,7 +201,8 @@ class HighlightCurator(process_node.ProcessNode):
 
         # Compiled movie name.
         movie_type_str = compile_options.COMPILATION_TYPE.value
-        out_file_basename = f"{student or teacher}_{movie_type_str}_v{video_config.VERSION}_{evals_fingerprint}"
+        time_str = datetime.datetime.now().strftime("%Y%m%d%H%M")
+        out_file_basename = f"{student or teacher}_{movie_type_str}_v{video_config.VERSION}_e{evals_fingerprint}_{time_str}"
         os.makedirs(out_dir, exist_ok=True)
         movie_name = os.path.join(out_dir, f"{out_file_basename}.mp4")
 
