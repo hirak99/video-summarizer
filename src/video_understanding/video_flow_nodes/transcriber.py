@@ -128,8 +128,7 @@ class WhisperTranscribe(process_node.ProcessNode):
         # The large-v3-turbo appears to do on par with large-v3 for English.
         # See https://github.com/openai/whisper/discussions/2363
         # For the original models, see also pg. 22 here: https://arxiv.org/abs/2212.04356
-        self._model = whisper.load_model("large-v3-turbo")
-        self._model.to("cuda")
+        self._model = whisper.load_model("large-v3-turbo", device="cuda")
 
     def _transcribe_raw(self, local_path: str) -> list[TranscriptionT]:
         logging.info(f"Transcribing {local_path!r}...")
