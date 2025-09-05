@@ -205,8 +205,7 @@ class VideoFlowGraph:
 
         # Use a directory per video.
         results_dir = os.path.join(out_path, video_basename)
-        if not os.path.isdir(results_dir):
-            os.mkdir(results_dir)
+        os.makedirs(results_dir, exist_ok=True)
 
         persist_path = os.path.join(results_dir, "graph_state.json")
 
