@@ -31,10 +31,10 @@ flowchart TD;
     D --> K
     K --> HighlightSel["(OpenAI o4-mini)<br>"Highlight Selection]
     A -- video --> N["(OpenAI gpt-4.1)<br>Scene Understanding"]
-    A --> LABELS["Manual Labeling"] --> N
+    A --> Annotations["Video Annotations"] --> N
     K --> N
     N --> HighlightSel
-    LABELS@{ shape: lean-r}
+    Annotations@{ shape: doc}
     HighlightSel@{ shape: procs}
 ```
 
@@ -56,15 +56,22 @@ Once all the videos are processed, the following is run to summarize across vide
 
 ```mermaid
 flowchart TD
-    X[Original Videos] --> B
-    Y[Selected Highlights] --> Persist[Persister]
-    Persist --> A
-    Z[PII Detections] -- blur --> B
-    A[Highlight Curation] --> B[Compiled Movie]
-    A --> C[Auto Eval Templates]
-    X@{ shape: procs}
+    subgraph Sessions["Processed Sessions"]
+            Y["Selected Highlights"]
+            Z["PII Detections"]
+    end
+    Directive["Compilation Parameters"] --> X["Original Videos"] & Y & Z
+    X --> B["Compile Movie Reel"]
+    Directive --> Annotations["Video Annotations"] -- blur --> B
+    Y --> Persister["Persist (save for repro)"]
+    Persister --> A["Rank & Select Top Highlights"]
+    Z -- blur --> B
+    A --> B & C["Make Auto Eval Templates"]
+
+    Annotations@{ shape: docs}
     Y@{ shape: procs}
     Z@{ shape: procs}
+    X@{ shape: procs}
 ```
 
 ## Video Question & Answering
