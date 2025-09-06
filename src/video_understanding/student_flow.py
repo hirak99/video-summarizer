@@ -35,7 +35,7 @@ def _main(
         {
             "student": student_const,
             "teacher": teacher_const,
-            "out_dir": str(_OUTDIR),
+            "log_dir": str(persist_dir),
         },
         force=True,  # DO NOT change this. Instead use the force_rerun arg.
     )

@@ -114,7 +114,7 @@ class EvalsPersister(process_node.ProcessNode):
         self,
         student: str | None,
         teacher: str | None,
-        out_dir: str,
+        log_dir: str,
     ) -> str:
         eval_segments = HighlightsListT([])
 
@@ -149,8 +149,8 @@ class EvalsPersister(process_node.ProcessNode):
                     )
 
         fingerprint = misc_utils.fingerprint(eval_segments.model_dump_json())
-        out_file_basename = f"segments_e{student or teacher}_{compile_options.COMPILATION_TYPE.value}_{fingerprint}.json"
-        out_fname = os.path.join(out_dir, out_file_basename)
+        out_file_basename = f"segments_{student or teacher}_{compile_options.COMPILATION_TYPE.value}_{fingerprint}.json"
+        out_fname = os.path.join(log_dir, out_file_basename)
 
         with open(out_fname, "w") as f:
             json.dump(
