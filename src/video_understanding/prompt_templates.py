@@ -48,7 +48,7 @@ STUDENT_HIRING_PROMPT_TEMPLATE: list[str] = [
     "]",
 ]
 
-STUDENT_RESUME_PROMPT_VERSION = 5  # Increase if you change the prompt.
+STUDENT_RESUME_PROMPT_VERSION = 6  # Increase if you change the prompt.
 STUDENT_RESUME_PROMPT_TEMPLATE: list[str] = [
     "Following is a transcript from {task_description}:",
     "",
@@ -59,10 +59,12 @@ STUDENT_RESUME_PROMPT_TEMPLATE: list[str] = [
     "Instructions:",
     "- Focus on moments where the student demonstrates key skills such as articulation of process, knowledge, or skillful execution.",
     "- Look for times where the student speaks clearly, with confidence.",
+    "- Since this is a 1-1 training, things like teamwork is of lower importance than articulation of knowledge.",
     "- DO NOT include self-admission of failure on routine tasks.",
     "- DO NOT include if the student sounds uncertain.",
     "- DO NOT include statements by the student that can be interpreted as negative, e.g. 'I did the best I could' or similar.",
     "- DO NOT stop an exchange at a cliffhanger, e.g. if it appears the student will say something important, do not stop the highlight there.",
+    "- DO NOT include very short clips like a single sentence without context.",
     "- Try to find and include segments with teacher's feedback that supports the student. Include such affirmations from the teacher.",
     "- Include relevant praise from the teacher that highlights the student's strengths or ability.",
     "- DO NOT include comments, corrections, or workarounds related to technical equipment, props, recording glasses, visual clarity, or dolls - even if the student shows resourcefulness.",
