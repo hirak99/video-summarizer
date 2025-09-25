@@ -8,6 +8,7 @@ from . import video_config
 from ..flow import internal_graph_node
 from ..flow import process_graph
 from .video_flow_nodes import caption_visualizer
+from .video_flow_nodes import custom_yolo_detector
 from .video_flow_nodes import highlights_selector
 from .video_flow_nodes import ocr_detector
 from .video_flow_nodes import role_based_captioner
@@ -28,7 +29,7 @@ class VideoFlowGraph:
         graph = process_graph.ProcessGraph(dry_run=dry_run)
 
         # Don't re-use purged node ids.
-        # Next Id: 18
+        # Next Id: 19
         # Id(s) deprecated: 3, 11.
         self._source_file_const = graph.add_constant_node(
             0, name="Source Video", type=str
@@ -42,6 +43,15 @@ class VideoFlowGraph:
                 "out_file_stem": self._out_stem_const,
             },
             version=2,
+        )
+        custom_yolo_detect_node = graph.add_node(
+            18,
+            custom_yolo_detector.CustomYoloDetector,
+            {
+                "source_file": self._source_file_const,
+                "out_file_stem": self._out_stem_const,
+            },
+            version=0,
         )
         transcribe_node = graph.add_node(
             2,
@@ -177,6 +187,7 @@ class VideoFlowGraph:
 
         # Final target node(s) for all files.
         final_nodes: list[internal_graph_node.AddedNode] = [
+            custom_yolo_detect_node,
             self.ocr_detect_node,
             self.highlights_student_hiring,
             self.highlights_student_resume,
@@ -188,6 +199,8 @@ class VideoFlowGraph:
         self.graph = graph
         self._final_nodes = final_nodes
         self._release_resources_after = [
+            custom_yolo_detect_node,
+            self.ocr_detect_node,
             transcribe_node,
             diarize_node,
             role_identify_node,

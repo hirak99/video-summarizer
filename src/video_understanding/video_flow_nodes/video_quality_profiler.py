@@ -95,7 +95,7 @@ class VideoQualityProfiler(process_node.ProcessNode):
 
         last_frame: npt.NDArray[np.uint8] | None = None
 
-        frame_time: npt.NDArray[np.float64]
+        frame_time: np.float64
         frame: npt.NDArray[np.uint8]
         start_time = time.time()
         for frame_count, (frame_time, frame) in enumerate(

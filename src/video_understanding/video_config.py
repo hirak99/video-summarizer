@@ -36,7 +36,8 @@ from .utils import file_conventions
 # 7.8 - Implemented automatic inadmissible segment ("choppiness") detection on videos.
 # 7.8.1 - Iteration of prompts.
 # 7.8.2 - Iteration of prompts.
-VERSION = "7.8.2"
+# 7.9 - Automated detection of teacher/student windows with a custom YOLO model.
+VERSION = "7.9"
 
 _HOME = pathlib.Path(os.environ["HOME"])
 VIDEOS_DIR = _HOME / "data/videos"
