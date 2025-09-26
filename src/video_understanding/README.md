@@ -13,7 +13,7 @@ A flow that is run to process each video.
 ```mermaid
 flowchart TD;
     A[Video Input]
-    A -- video --> M[PII Detection]
+    A -- video --> PII[PII Detection]
     A -- video --> VideoQualityProfiler[Video Quality Profiler]
     VideoQualityProfiler --> HighlightSel
     A --> I
@@ -21,7 +21,7 @@ flowchart TD;
     D --> I
     F --> I
     A -- audio --> Diarization["(pyannote Local)<br>"Speaker Diarization]
-    A -- audio --> Captioning["(Whisper Local)<br>"Captioning]
+    A -- audio --> Captioning["(Custom Whisper Local)<br>"Captioning]
     Diarization --> D
     Diarization --> RefineCaptions
     Captioning --> RefineCaptions[Refine Captions]
@@ -31,9 +31,10 @@ flowchart TD;
     D --> K
     K --> HighlightSel["(OpenAI o4-mini)<br>"Highlight Selection]
     A -- video --> N["(OpenAI gpt-4.1)<br>Scene Understanding"]
-    A --> Annotations["Video Annotations"] --> N
     K --> N
     N --> HighlightSel
+    A --> Yolo["(Local AI)<br>Viewport Detection"] --> N
+    A -."sample".-> Annotations["Manual Annotations"] -."offline training"..-> Yolo
     Annotations@{ shape: doc}
     HighlightSel@{ shape: procs}
 ```

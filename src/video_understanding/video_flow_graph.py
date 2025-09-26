@@ -53,6 +53,7 @@ class VideoFlowGraph:
             },
             version=0,
         )
+        del custom_yolo_detect_node  # Incomplete and likely to get dropped.
         transcribe_node = graph.add_node(
             2,
             transcriber.WhisperTranscribe,
@@ -128,7 +129,7 @@ class VideoFlowGraph:
                 "role_aware_summary_file": self.role_based_caption_node,
                 "out_file_stem": self._out_stem_const,
             },
-            version=4,
+            version=5,
         )
         if not video_config.ENABLE_VISION:
             self._vision_process_node = None
@@ -187,7 +188,6 @@ class VideoFlowGraph:
 
         # Final target node(s) for all files.
         final_nodes: list[internal_graph_node.AddedNode] = [
-            custom_yolo_detect_node,
             self.ocr_detect_node,
             self.highlights_student_hiring,
             self.highlights_student_resume,
@@ -199,7 +199,6 @@ class VideoFlowGraph:
         self.graph = graph
         self._final_nodes = final_nodes
         self._release_resources_after = [
-            custom_yolo_detect_node,
             self.ocr_detect_node,
             transcribe_node,
             diarize_node,

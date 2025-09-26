@@ -1,6 +1,11 @@
-# WIP. Probably will drop this. Instead, carry out inference on the fly in vision_processor.
+# IMPORTANT
+# WIP, incomplete. Probably will drop this. Instead, carry out inference on the fly in vision_processor.
+# If we do this -
+# We will need to add code complexity to store, load, and scan the detections.
+# The complexity can be avoided since detection on image is very cheap.
 import logging
 
+import cv2
 import moviepy
 import numpy as np
 import numpy.typing as npt
@@ -8,7 +13,7 @@ from pyannote import audio  # type: ignore
 import pydantic
 
 from ...flow import process_node
-from ..utils import teacher_student_detector
+from ..utils import yolo_window_detector
 
 from typing import override
 
@@ -77,7 +82,7 @@ class YoloDetections:
 
 class CustomYoloDetector(process_node.ProcessNode):
     def __init__(self) -> None:
-        self._detector = teacher_student_detector.TeacherStudentDetector()
+        self._detector = yolo_window_detector.YoloWindowDetector()
 
     @override
     def process(self, source_file: str, out_file_stem: str) -> str:
@@ -90,16 +95,13 @@ class CustomYoloDetector(process_node.ProcessNode):
         for frame_count, (frame_time, frame) in enumerate(
             clip.iter_frames(with_times=True)
         ):
-            result = self._detector.detect(frame, f"{frame_count=} {frame_time=}")
+            result = self._detector.detect(
+                cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), f"{frame_count=} {frame_time=}"
+            )
 
-            for cls_name, xyxy in [
-                ("teacher", result.teacher),
-                ("student", result.student),
-            ]:
-                if xyxy is None:
-                    continue
+            for cls_enum, xyxy in result.items():
                 detections.add(
-                    cls_name=cls_name,
+                    cls_name=cls_enum.value,
                     frame=frame_count,
                     time=float(frame_time),
                     xyxy=xyxy,

@@ -11,8 +11,11 @@ import hashlib
 import json
 import logging
 import os
+import random
 
 import moviepy  # type: ignore
+from numpy import typing as npt
+import numpy as np
 from PIL import Image
 import pydantic
 
@@ -27,6 +30,7 @@ from ..utils import interval_scanner
 from ..utils import manual_labels_manager
 from ..utils import misc_utils
 from ..utils import templater
+from ..utils import yolo_window_detector
 
 from typing import Any, override
 
@@ -37,7 +41,9 @@ _RESOLUTION_S = 5.0
 _CAPTION_SECS = 30.0
 
 # Controls logging frequency of the LLM calls.
-_LOG_EVERY = 1
+# To avoid systematic blindness, we log probabilistically.
+# Cropped images and text for the prompt are logged.
+_LOG_PROPORTION = 1.0 / 5
 
 
 class SceneDescriptionT(pydantic.BaseModel):
@@ -141,6 +147,8 @@ class _VisionProcessor:
         movie_path: str,
         out_file_stem: str,
     ):
+        self._yolo_detector = yolo_window_detector.YoloWindowDetector()
+
         # Used to name files generated.
         self._timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -205,20 +213,33 @@ class _VisionProcessor:
         logging.info(f"Saved from partial to: {outfname}")
         return outfname
 
+    def _crop_to_windows(
+        self, frame: npt.NDArray[np.uint8], t: float
+    ) -> dict[yolo_window_detector.DetectionType, Image.Image]:
+
+        image = Image.fromarray(frame)
+        label = list(self._student_labels.containing_timestamp(t))
+        if label:
+            box = label[0]["label"]
+            cropped_images: dict[yolo_window_detector.DetectionType, Image.Image] = {}
+            cropped_images[yolo_window_detector.DetectionType.STUDENT] = image.crop(
+                (box.x, box.y, box.x + box.width, box.y + box.height)
+            )
+            logging.info(f"Found and using human-labeled student window at {t}.")
+            return cropped_images
+
+        return self._yolo_detector.crop_to_detections(image, f"{t=}")
+
     def _process_frame(self, t: float) -> None:
         frame = self._clip.get_frame(t)
         if frame is None:
             logging.warning(f"Could not find frame at {t}.")
             return None
-        image = Image.fromarray(frame)
-        label = list(self._student_labels.containing_timestamp(t))
-        if not label:
-            logging.info(f"Student window not labelled at {t}.")
+        cropped = self._crop_to_windows(frame, t)
+        student_image = cropped.get(yolo_window_detector.DetectionType.STUDENT)
+        if student_image is None:
+            logging.warning(f"Could not find student window at {t}.")
             return None
-        box = label[0]["label"]
-        student_image = image.crop(
-            (box.x, box.y, box.x + box.width, box.y + box.height)
-        )
 
         captions = self._caption_scanner.overlapping_intervals(t - _CAPTION_SECS, t)
         prompt = _get_prompt(self._source_movie, captions, self._scene_descriptions)
@@ -237,7 +258,7 @@ class _VisionProcessor:
                 return
 
         log_file: str | None = None
-        if len(self._scene_descriptions.chronology) % _LOG_EVERY == 0:
+        if random.random() < _LOG_PROPORTION:
             call_count = len(self._scene_descriptions.chronology)
             log_stem = misc_utils.file_stem_to_log_stem(self._out_file_stem)
             log_stem += (
