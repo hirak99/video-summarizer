@@ -129,7 +129,7 @@ class VideoFlowGraph:
                 "role_aware_summary_file": self.role_based_caption_node,
                 "out_file_stem": self._out_stem_const,
             },
-            version=5,
+            version=7,
         )
         if not video_config.ENABLE_VISION:
             self._vision_process_node = None

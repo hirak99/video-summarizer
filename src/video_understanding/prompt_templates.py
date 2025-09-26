@@ -138,10 +138,10 @@ TEACHER_HIRING_PROMPT_TEMPLATE: list[str] = [
 
 # Prefix of the vision prompt.
 SCENE_PROMPT_TEMPLATE_PART1 = [
-    "This is a frame taken from a video session named '{source_movie}'.",
-    "The perspective is of the student's view. Teacher is remote, and the student may look at mirror or other collaborators.",
-    "Please summarize the frame for future analysis.",
-    "Ignore any PII such as phone number, user-interface elements like cursor or dialog box - and focus on content relevant for the session.",
+    "This is a frame taken from a video session named '{source_movie}', showing the student's view.",
+    "The teacher is remote, and the student may also be interacting with a mirror or collaborators.",
+    "Summarize the frame's key content relevant to the session, ignoring PII (e.g., phone numbers) or UI elements (e.g., cursors, dialog boxes).",
+    "Focus on the core visual content for analysis."
     "{optional_caption_lines}",
 ]
 # Depending on whether or not this is the first frame, one of the prompt templates below is used as suffix.
@@ -156,8 +156,8 @@ SCENE_PROMPT_TEMPLATE_PART2_OTHER_FRAMES = [
     "(Time: {last_frame_time}s)",
     "{last_frame_scene_json}",
     "",
-    "Summarize the current scene, and actions done since the previous frame by the student.",
-    "If there is no important action then output an empty list.",
+    "Summarize the current scene, and any relevant actions done since the previous frame by the student.",
+    "If there is no important actions, then output an empty list.",
     "",
     "Please output a JSON, of the form -",
     "{",

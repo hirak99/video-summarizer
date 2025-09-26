@@ -97,9 +97,11 @@ def _get_caption_lines(
                     first_scene_added = True
                     lines.append(f"{this_scene.time:0.1f}s")
                     if this_scene.scene:
-                        lines[-1] += " | Scene: " + " ".join(this_scene.scene)
+                        lines[-1] += " | Student's View: " + " ".join(this_scene.scene)
                     if this_scene.actions:
-                        lines[-1] += " | Actions: " + " ".join(this_scene.actions)
+                        lines[-1] += " | Student's Actions: " + " ".join(
+                            this_scene.actions
+                        )
 
             lines.append(
                 f"{start_time:0.1f}s | {caption['speaker']}: \"{caption['text']}\"",

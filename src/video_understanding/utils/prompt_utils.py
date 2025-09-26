@@ -75,7 +75,7 @@ def caption_lines_for_prompt(
                 )
 
                 lines.append(
-                    f"[{last_scene_time:0.1f} - {this_scene.time:0.1f}] _[Visual: "
+                    f"[{last_scene_time:0.1f} - {this_scene.time:0.1f}] _[Visual (Student's Actions): "
                     + " ".join(this_scene.actions)
                     + "]_"
                 )
