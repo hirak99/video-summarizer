@@ -101,7 +101,7 @@ class VideoFlowGraph:
                 "word_captions_file": speaker_assign_node,
                 "out_file_stem": self._out_stem_const,
             },
-            version=3,
+            version=4,
         )
         visualize_node = graph.add_node(
             5,
