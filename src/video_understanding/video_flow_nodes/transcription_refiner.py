@@ -39,6 +39,7 @@ def _union_intervals(intervals: list[tuple[float, float]]):
 # TODO: Add unit tests for the following two methods.
 def _trim_start(caption: transcriber.TranscriptionT, new_start: float):
     new_start = round(new_start, 2)
+    logging.info(f"Trimming start to {new_start=} for {caption=}")
     # The new start cannot be after the end of the first word.
     first_word_end = caption["words"][0]["end"]
     new_start = min(new_start, first_word_end - _MIN_WORD_LENGTH)
@@ -48,6 +49,7 @@ def _trim_start(caption: transcriber.TranscriptionT, new_start: float):
 
 def _trim_end(caption: transcriber.TranscriptionT, new_end: float):
     new_end = round(new_end, 2)
+    logging.info(f"Trimming end to {new_end=} for {caption=}")
     # The new end cannot be before the start of the last word.
     last_word_start = caption["words"][-1]["start"]
     new_end = max(new_end, last_word_start + _MIN_WORD_LENGTH)

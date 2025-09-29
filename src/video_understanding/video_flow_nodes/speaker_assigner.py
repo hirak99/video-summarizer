@@ -28,7 +28,7 @@ class SpeakerCaptionT(TypedDict):
 def _split_to_sentences(
     words: list[transcriber.TranscriptionWordT],
 ) -> list[list[transcriber.TranscriptionWordT]]:
-    sentences = []
+    sentences: list[list[transcriber.TranscriptionWordT]] = []
     current: list[transcriber.TranscriptionWordT] = []  # Current sentence.
     last_word: transcriber.TranscriptionWordT | None = None
     for word_dict in words:

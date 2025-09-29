@@ -2,7 +2,7 @@ import unittest
 
 from . import graph_algorithms
 
-# Access private methods for tes.
+# Access private methods for tests.
 # pyright: reportPrivateUsage=false
 
 
