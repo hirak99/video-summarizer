@@ -2,6 +2,8 @@ import unittest
 
 from . import templater
 
+# pyright: reportPrivateUsage=false
+
 
 class TestTemplater(unittest.TestCase):
 
@@ -35,6 +37,38 @@ class TestTemplater(unittest.TestCase):
         template = ["Hello, {name}! Your name is {name}."]
         prompt_args = {"name": "Bob"}
         expected_lines = ["Hello, Bob! Your name is Bob."]
+        self.assertEqual(templater.fill(template, prompt_args), expected_lines)
+
+    def test_split_double_brace(self):
+        splitted = templater._split_double_brace("This is a {{test}}")
+        self.assertEqual(
+            splitted,
+            [
+                "This is a ",
+                templater._DoubleBrace.OPEN,
+                "test",
+                templater._DoubleBrace.CLOSE,
+                "",
+            ],
+        )
+
+    def test_split_and_join_double_brace(self):
+        cases = [
+            ("This is a {{test}}", "This is a {test}"),
+            ("Only open {{", "Only open {"),
+            ("No double braces", "No double braces"),
+            ("Only close }}", "Only close }"),
+            ("Single open {", "Single open {"),
+            ("Single close }", "Single close }"),
+        ]
+        for template, expected in cases:
+            splitted = templater._split_double_brace(template)
+            self.assertEqual(templater._join_double_brace(splitted), expected)
+
+    def test_double_brace(self):
+        template = ["Hello, {name}!", "Your age is {age}.", "BIG {{WELCOME}} TO YOU"]
+        prompt_args = {"name": "Alice", "age": "30"}
+        expected_lines = ["Hello, Alice!", "Your age is 30.", "BIG {WELCOME} TO YOU"]
         self.assertEqual(templater.fill(template, prompt_args), expected_lines)
 
 

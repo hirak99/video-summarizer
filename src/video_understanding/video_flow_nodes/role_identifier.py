@@ -1,12 +1,14 @@
 import functools
 import json
 import logging
-import os
 
 from . import word_caption_utils
+from .. import prompt_templates
 from ...flow import process_node
 from ..llm_service import llm
 from ..llm_service import llm_utils
+from ..utils import file_conventions
+from ..utils import templater
 
 from typing import Any, override
 
@@ -65,7 +67,9 @@ class RoleIdentifier(process_node.ProcessNode):
         self._llm_instance = llm.OpenAiLlmInstance("o4-mini")
 
     @override
-    def process(self, word_captions_file: str, out_file_stem: str) -> dict[str, str]:
+    def process(
+        self, source_file: str, word_captions_file: str, out_file_stem: str
+    ) -> dict[str, str]:
         """Returns a simple dict identifying speaker rolse.
 
         Returns:
@@ -77,24 +81,13 @@ class RoleIdentifier(process_node.ProcessNode):
 
         caption_text, speaker_aliases = _caption_to_str(data)
 
-        prompt_lines: list[str] = [
-            # "You are an AI assistant that identifies roles in a conversation. "
-            # "Analyze the following conversation and identify the roles of each speaker. "
-            # "Provide a brief description of each role based on their speech patterns and content.\n\n"
-            "Scan the following transciption of a teaching session, and identify which of Person A or Person B was the teacher, and which was the student.",
-            "",
-            "---",
-            # "Person A: I am teacher.",
-            # "Person B: I am student.",
-            f"{caption_text}",
-            "---",
-            f"The session name is {os.path.basename(out_file_stem)}",
-            "Analyze all the lines above, and determine who is the teacher and who is the student.",
-            "The diarization may not be 100% perfect, there can be very few lines incorrectly captioned.",
-            "Restrict your response to only one line of json, with the follwing format:",
-            "" '{"Person A": role, "Person B": role}',
-            "" 'The `role` can be either "Teacher" or "Student".',
-        ]
+        prompt_lines = templater.fill(
+            prompt_templates.ROLE_IDENTIFIER_PROMPT_TEMPLATE,
+            {
+                "caption_text": caption_text,
+                "task_description": file_conventions.filename_to_task(source_file),
+            },
+        )
         response = self._llm_instance.do_prompt_and_parse(
             "\n".join(prompt_lines),
             transformers=[

@@ -5,18 +5,18 @@ import os
 import regex
 
 _FILE_REGEX_TO_TASK = {
-    "EKG": "Pediatric EKG training session",
-    "Hearing": "Pediatric Hearing Test training session",
-    "(color vision|Color Screening)": "Pediatric Color Vision Tess training session",
-    "Heel stick": "Pediatric Heel Stick blood sample collection training session",
-    "temperature": "Pediatric temperature check training session",
-    "finger stick": "Pediatric finger stick blood sample collection training session",
-    "PPD": "Pediatric PPD skin test for tuberculosis training session",
-    "PPE donning doffing": "Pediatric personal protective equiment gear donning and droffing training session",
-    "Weight": "Pediatric weight measurement training session",
-    "height": "Pediatric height measurement training session",
-    "Heart Rate": "Pediatric heart rate measurement training session",
-    "Hand hygiene": "Pediatric hand hygiene training session",
+    "EKG": "pediatric EKG training",
+    "Hearing": "pediatric Hearing Test training",
+    "(color vision|Color Screening)": "pediatric Color Vision Tess training",
+    "Heel stick": "pediatric Heel Stick blood sample collection training",
+    "temperature": "pediatric temperature check training",
+    "finger stick": "pediatric finger stick blood sample collection training",
+    "PPD": "pediatric PPD skin test for tuberculosis training",
+    "PPE donning doffing": "pediatric personal protective equipment gear donning and droffing training",
+    "Weight": "pediatric weight measurement training",
+    "height": "pediatric height measurement training",
+    "Heart Rate": "pediatric heart rate measurement training",
+    "Hand hygiene": "pediatric hand hygiene training",
 }
 
 
@@ -61,7 +61,7 @@ def filename_to_task(file_path: str) -> str:
             f"Could not also deduce metadata from file name: {file_path!r}"
         )
     name = m["name"]
-    return f"Pediatric {name} training session"
+    return f"pediatric {name} training"
 
 
 @functools.lru_cache(maxsize=2048)

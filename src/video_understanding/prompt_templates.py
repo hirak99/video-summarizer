@@ -1,13 +1,32 @@
 # All prompt templates should be placed here.
 
+ROLE_IDENTIFIER_PROMPT_TEMPLATE = [
+    # "You are an AI assistant that identifies roles in a conversation. "
+    # "Analyze the following conversation and identify the roles of each speaker. "
+    # "Provide a brief description of each role based on their speech patterns and content.\n\n"
+    "Scan the following transciption of a teaching session, and identify which of Person A or Person B was the teacher, and which was the student.",
+    "",
+    "---",
+    # "Person A: I am teacher.",
+    # "Person B: I am student.",
+    "{caption_text}",
+    "---",
+    "The session is on '{task_description}'",
+    "Analyze all the lines above, and determine who is the teacher and who is the student.",
+    "The diarization may not be 100% perfect, there can be very few lines incorrectly captioned.",
+    "Restrict your response to only one line of json, with the follwing format:",
+    "" '{{"Person A": role, "Person B": role}}',
+    "" 'The `role` can be either "Teacher" or "Student".',
+]
+
 STUDENT_HIRING_PROMPT_VERSION = 4  # Increase if you change the prompt.
 STUDENT_HIRING_PROMPT_TEMPLATE: list[str] = [
-    "Following is a transcript from {task_description}:",
+    "Following transcript is from session named '{task_description}':",
     "",
     "{caption_lines}",
     "",
     "---",
-    "For this {task_description}, evaluate the student's readiness for an internship. Identify clear weaknesses, or strengths, for a hiring manager.",
+    "For this '{task_description}' session, evaluate the student's readiness for an internship. Identify clear weaknesses, or strengths, for a hiring manager.",
     "Instructions:",
     "- Focus on the student talking or demonstrating. If it is mostly the teacher talking, do not use it.",
     (
@@ -50,12 +69,12 @@ STUDENT_HIRING_PROMPT_TEMPLATE: list[str] = [
 
 STUDENT_RESUME_PROMPT_VERSION = 6  # Increase if you change the prompt.
 STUDENT_RESUME_PROMPT_TEMPLATE: list[str] = [
-    "Following is a transcript from {task_description}:",
+    "Following transcript is from session named '{task_description}':",
     "",
     "{caption_lines}",
     "",
     "---",
-    "For this {task_description}, identify the best moments from the student's transcript that would highlight their strengths, skills, and achievements for a video resume.",
+    "For this '{task_description}' session, identify the best moments from the student's transcript that would highlight their strengths, skills, and achievements for a video resume.",
     "Instructions:",
     "- Focus on moments where the student demonstrates key skills such as articulation of process, knowledge, or skillful execution.",
     "- Look for times where the student speaks clearly, with confidence.",
@@ -92,12 +111,12 @@ STUDENT_RESUME_PROMPT_TEMPLATE: list[str] = [
 
 TEACHER_HIRING_PROMPT_VERSION = 0  # Increase if you change the prompt.
 TEACHER_HIRING_PROMPT_TEMPLATE: list[str] = [
-    "Following is a transcript from {task_description}:",
+    "Following transcript is from session named '{task_description}':",
     "",
     "{caption_lines}",
     "",
     "---",
-    "For this {task_description}, evaluate the teacher's teaching effectiveness, interpersonal skills, and ability to foster a positive learning environment.",
+    "For this '{task_description}' session, evaluate the teacher's teaching effectiveness, interpersonal skills, and ability to foster a positive learning environment.",
     "Instructions:",
     "- Focus on the teacher's instruction, feedback, and interaction with the student. Ignore sections where the student is talking or demonstrating unless the teacher is guiding or responding to it.",
     (
@@ -141,8 +160,7 @@ SCENE_PROMPT_TEMPLATE_PART1 = [
     "This is a frame taken from a video session named '{source_movie}', showing the student's view.",
     "The teacher is remote, and the student may also be interacting with a mirror or collaborators.",
     "Summarize the frame's key content relevant to the session, ignoring PII (e.g., phone numbers) or UI elements (e.g., cursors, dialog boxes).",
-    "Focus on the core visual content for analysis."
-    "{optional_caption_lines}",
+    "Focus on the core visual content for analysis." "{optional_caption_lines}",
 ]
 # Depending on whether or not this is the first frame, one of the prompt templates below is used as suffix.
 SCENE_PROMPT_TEMPLATE_PART2_FIRST_FRAME = [
