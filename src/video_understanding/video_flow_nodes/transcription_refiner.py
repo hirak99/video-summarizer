@@ -36,7 +36,6 @@ def _union_intervals(intervals: list[tuple[float, float]]):
     return result
 
 
-# TODO: Add unit tests for the following two methods.
 def _trim_start(caption: transcriber.TranscriptionT, new_start: float):
     new_start = round(new_start, 2)
     logging.info(f"Trimming start to {new_start=} for {caption=}")
