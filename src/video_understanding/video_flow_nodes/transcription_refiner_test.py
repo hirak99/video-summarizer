@@ -11,7 +11,7 @@ from typing import Final
 
 _TEST_CAPTION: transcriber.TranscriptionT = {
     "text": "Hello, how are you?",
-    "interval": (5.0, 10.0),
+    "interval": (5.0, 9.0),
     "words": [
         {"text": "Hello", "start": 5.0, "end": 6.0, "confidence": 0.9},
         {"text": "how", "start": 6.0, "end": 7.0, "confidence": 0.9},
@@ -21,7 +21,7 @@ _TEST_CAPTION: transcriber.TranscriptionT = {
 }
 
 # Convenient shorthand.
-_MIN_WORD_LENGTH: Final[float] = transcription_refiner._MIN_WORD_LENGTH
+_MIN_SENTENCE_LENGTH: Final[float] = transcription_refiner._MIN_SENTENCE_LENGTH
 
 
 class TestTranscriptionRefiner(unittest.TestCase):
@@ -30,16 +30,11 @@ class TestTranscriptionRefiner(unittest.TestCase):
         caption: transcriber.TranscriptionT,
         expected: list[tuple[str, tuple[float, float]]],
     ) -> None:
-        """
-        Helper to check all words' text and (start, end).
-        expected: list of (text, (start, end))
-        """
         words = caption["words"]
-        self.assertEqual(len(words), len(expected))
-        for word, (exp_text, (exp_start, exp_end)) in zip(words, expected):
-            self.assertEqual(word["text"], exp_text)
-            self.assertEqual(word["start"], exp_start)
-            self.assertEqual(word["end"], exp_end)
+        actual_words: list[tuple[str, tuple[float, float]]] = [
+            (word["text"], (word["start"], word["end"])) for word in words
+        ]
+        self.assertEqual(actual_words, expected)
 
     def test_trim_start_normal(self):
         caption = copy.deepcopy(_TEST_CAPTION)
@@ -55,12 +50,10 @@ class TestTranscriptionRefiner(unittest.TestCase):
 
     def test_trim_start_past_first_word_end(self):
         caption = copy.deepcopy(_TEST_CAPTION)
-        transcription_refiner._trim_start(caption, 8.1)
-        self.assertEqual(caption["interval"][0], 6.0 - _MIN_WORD_LENGTH)
+        transcription_refiner._trim_start(caption, 7.2)
+        self.assertEqual(caption["interval"][0], 7.2)
         expected = [
-            ("Hello", (6.0 - _MIN_WORD_LENGTH, 6.0)),
-            ("how", (6.0, 7.0)),
-            ("are", (7.0, 8.0)),
+            ("Hello how are", (7.2, 8.0)),
             ("you?", (8.0, 9.0)),
         ]
         self._check_words(caption, expected)
@@ -80,13 +73,12 @@ class TestTranscriptionRefiner(unittest.TestCase):
 
     def test_trim_end_before_last_word_start(self):
         caption = copy.deepcopy(_TEST_CAPTION)
-        # Try to trim to 7.1, which is before last word's start (8.0), so should clamp to 8.5 (8.0 + _MIN_WORD_LENGTH)
+        # Try to trim to 7.1, which is before last word's start (8.0), so should clamp to 8.5 (8.0 + _MIN_SENTENCE_LENGTH)
         transcription_refiner._trim_end(caption, 7.1)
-        self.assertEqual(caption["interval"][1], 8.0 + _MIN_WORD_LENGTH)
+        self.assertEqual(caption["interval"][1], 7.1)
         expected = [
             ("Hello", (5.0, 6.0)),
             ("how", (6.0, 7.0)),
-            ("are", (7.0, 8.0)),
-            ("you?", (8.0, 8.0 + _MIN_WORD_LENGTH)),
+            ("are you?", (7.0, 7.1)),
         ]
         self._check_words(caption, expected)

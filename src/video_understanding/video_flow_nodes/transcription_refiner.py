@@ -17,8 +17,7 @@ _SILENCE_THRESHOLD = 4.0
 # Amount of silence retained after correction. Should be <= _ALLOWED_SILENCE.
 _MAINTAIN_SILENCE = 1.0
 
-# Will not trim if any word less than this.
-_MIN_WORD_LENGTH = 0.5
+_MIN_SENTENCE_LENGTH = 0.5
 
 
 def _union_intervals(intervals: list[tuple[float, float]]):
@@ -36,24 +35,47 @@ def _union_intervals(intervals: list[tuple[float, float]]):
     return result
 
 
-def _trim_start(caption: transcriber.TranscriptionT, new_start: float):
+# Combined function to trim start or end.
+def _trim_caption(
+    caption: transcriber.TranscriptionT,
+    *,
+    new_start: float = float("-inf"),
+    new_end: float = float("inf"),
+) -> None:
     new_start = round(new_start, 2)
-    logging.info(f"Trimming start to {new_start=} for {caption=}")
-    # The new start cannot be after the end of the first word.
-    first_word_end = caption["words"][0]["end"]
-    new_start = min(new_start, first_word_end - _MIN_WORD_LENGTH)
-    caption["interval"] = (new_start, caption["interval"][1])
-    caption["words"][0]["start"] = new_start
+    new_start = min(new_start, caption["interval"][1] - _MIN_SENTENCE_LENGTH)
+    new_start = max(new_start, caption["interval"][0])
 
-
-def _trim_end(caption: transcriber.TranscriptionT, new_end: float):
     new_end = round(new_end, 2)
-    logging.info(f"Trimming end to {new_end=} for {caption=}")
-    # The new end cannot be before the start of the last word.
-    last_word_start = caption["words"][-1]["start"]
-    new_end = max(new_end, last_word_start + _MIN_WORD_LENGTH)
-    caption["interval"] = (caption["interval"][0], new_end)
-    caption["words"][-1]["end"] = new_end
+    # new_end = max(new_end, caption["interval"][0] + _MIN_SENTENCE_LENGTH)
+    new_end = max(new_end, new_start + _MIN_SENTENCE_LENGTH)
+    new_end = min(new_end, caption["interval"][1])
+
+    caption["interval"] = (new_start, new_end)
+
+    # Combine words whose intervals no longer overlap with (new_start, new_end).
+    new_words: list[transcriber.TranscriptionWordT] = []
+    for word in caption["words"]:
+        word["start"] = max(word["start"], new_start)
+        word["end"] = min(word["end"], new_end)
+        if not new_words:
+            new_words.append(word)
+            continue
+        last_word = new_words[-1]
+        if last_word["end"] <= new_start or word["start"] >= new_end:
+            last_word["text"] += " " + word["text"]
+            last_word["end"] = word["end"]
+            continue
+        new_words.append(word)
+    caption["words"] = new_words
+
+
+def _trim_start(caption: transcriber.TranscriptionT, new_start: float) -> None:
+    _trim_caption(caption, new_start=new_start)
+
+
+def _trim_end(caption: transcriber.TranscriptionT, new_end: float) -> None:
+    _trim_caption(caption, new_end=new_end)
 
 
 class TranscriptionRefiner(process_node.ProcessNode):
