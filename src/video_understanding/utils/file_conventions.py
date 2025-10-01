@@ -26,18 +26,18 @@ _FILE_SORT_ORDER = [
     "hygiene",
     "ppe",
     "temperature",
-    "blood pressure",
     "heart rate",
     "respiration",
+    "blood pressure",
     "weight",
     "head circumference",
     "height",
-    "skill",
+    "ppd",
+    "finger stick",
+    "heel stick",
     "ekg",
     "hearing",
     "color vision",
-    "finger stick",
-    "heel stick",
 ]
 
 
