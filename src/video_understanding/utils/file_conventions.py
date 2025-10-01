@@ -51,8 +51,11 @@ def filename_to_task(file_path: str) -> str:
     logging.info(f"No metadata found for file: {file_path}")
     m = regex.fullmatch(
         # It's not always E000x-S00xx.
-        # Example: 2025-01-01_weight_E000x_ S00xx.mkv
-        # Or: 01-01-25_hearing_E000x-S000x.mkv
+        # TODO: Add test for each of the cases below.
+        # Examples:
+        # 2025-01-01_weight_E000x_ S000x.mkv
+        # 01-01-25_hearing_E000x-S000x.mkv
+        # 2025-01-30 13-20-12_PPE_E000x-S000x.mkv
         r"\d{2,4}-\d{2}-\d{2}[ \d]*_(?P<name>.*)_E0.*?S0.*?\.(mp4|mkv)",
         basename,
     )
