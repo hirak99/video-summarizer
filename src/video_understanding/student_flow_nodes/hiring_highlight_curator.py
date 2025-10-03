@@ -21,6 +21,9 @@ from typing import override
 # Typically this may include convo on previous or next lesson.
 _REMOVE_EDGES_SECS = 5
 
+# All sections with importance below this will be dropped.
+_IMPORTANCE_THRESHOLD = 6
+
 
 class HighlightsLog(pydantic.BaseModel):
     # This is the log of the chosen highlights.
@@ -92,7 +95,9 @@ def _choose_highlights(
     highlights: list[highlights_persister.HighlightData], target_duration: float
 ) -> list[highlights_persister.HighlightData]:
     # Keep only highlights with importance.
-    highlights = [x for x in highlights if x.evaluation["importance"] >= 5]
+    highlights = [
+        x for x in highlights if x.evaluation["importance"] >= _IMPORTANCE_THRESHOLD
+    ]
     logging.info(f"# important highlights: {len(highlights)}")
 
     # Manual exclusions.
