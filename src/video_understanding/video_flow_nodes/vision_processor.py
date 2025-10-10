@@ -40,10 +40,9 @@ _RESOLUTION_S = 5.0
 # How many seconds of caption to use.
 _CAPTION_SECS = 30.0
 
-# Controls logging frequency of the LLM calls.
-# To avoid systematic blindness, we log probabilistically.
-# Cropped images and text for the prompt are logged.
-_LOG_PROPORTION = 1.0 / 5
+# Probability of logging images for VLM calls.
+# The text is always logged.
+_IMAGE_LOG_PROBABILITY = 1.0
 
 
 class SceneDescriptionT(pydantic.BaseModel):
@@ -259,22 +258,19 @@ class _VisionProcessor:
                 )
                 return
 
-        log_file: str | None = None
-        if random.random() < _LOG_PROPORTION:
-            call_count = len(self._scene_descriptions.chronology)
-            log_stem = misc_utils.file_stem_to_log_stem(self._out_file_stem)
-            log_stem += (
-                f".scene_understanding_{self._timestamp}_student_#{call_count:05d}"
-            )
+        call_count = len(self._scene_descriptions.chronology)
+        log_stem = misc_utils.file_stem_to_log_stem(self._out_file_stem)
+        log_stem += f".scene_understanding_{self._timestamp}_student_#{call_count:05d}"
 
-            # Save the image.
+        if random.random() < _IMAGE_LOG_PROBABILITY:
+            # Save the image into logs.
             with open(log_stem + ".png", "wb") as file:
                 student_image.save(file)
             logging.info(f"Saved image to {log_stem}.png")
 
-            # To be saved by the LLM call.
-            log_file = log_stem + ".txt"
-            logging.info("Logging to " + log_file)
+        # To be saved by the LLM call.
+        log_file = log_stem + ".txt"
+        logging.info("Logging to " + log_file)
 
         def validate_as_list(result: Any) -> SceneDescriptionT | None:
             result["time"] = t
