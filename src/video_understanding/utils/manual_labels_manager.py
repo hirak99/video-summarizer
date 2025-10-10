@@ -63,7 +63,7 @@ class VideoAnnotation:
         self._labels = _load_labels(self._labels_file)
         logging.info(f"# manual annotations loaded: {len(self._labels)}")
         if not self._labels:
-            logging.warning(f"No manual annotations loaded for {movie_path}.")
+            logging.info(f"No manual annotations loaded for {movie_path}.")
 
     def _get_scanner(
         self, ann_type: str
