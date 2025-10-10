@@ -164,7 +164,7 @@ class OpenAiLlmInstance(abstract_llm.AbstractLlm):
 
 
 # Example usage
-def example_usage():
+def _example_usage():
     # instance = LocalLlmInstance()
     instance = OpenAiLlmInstance("gpt-3.5-turbo")
     logging.info("Sending Query 1")
@@ -178,4 +178,4 @@ def example_usage():
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    example_usage()
+    _example_usage()
