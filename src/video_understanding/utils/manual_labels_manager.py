@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 
 import cv2
 from numpy import typing as npt
@@ -10,6 +11,10 @@ from . import manual_label_types
 from .. import video_config
 
 from typing import TypedDict
+
+# If True, will blur outside the student and teacher windows whenever they are found.
+# The "Blur.*" annotations will still be blurred.
+_WINDOW_BASED_BLUR = False
 
 # For now, we only use the labels done by the user "hermes".
 # Later on we can add support for replication etc.
@@ -23,9 +28,9 @@ _BLUR_AFTER = 0.0
 _BLUR_PADDING = 0
 
 # Constants for annotation names that we will process. These must match with the labeling config.
-_ANNOTATION_BLUR = "Blur"
-_ANNOTATION_TEACHER = "Teacher Window"
-_ANNOTATION_STUDENT = "Student Window"
+_ANNOTATION_BLUR_REGEX = "Blur.*"
+_ANNOTATION_TEACHER_REGEX = "Teacher Window"
+_ANNOTATION_STUDENT_REGEX = "Student Window"
 
 
 def _labels_file(video_file: str) -> str:
@@ -66,9 +71,14 @@ class VideoAnnotation:
             logging.info(f"No manual annotations loaded for {movie_path}.")
 
     def _get_scanner(
-        self, ann_type: str
+        self, ann_type_regex: str
     ) -> interval_scanner.IntervalScanner[_AnnotationIntervalScanner]:
-        annotations = [ann for ann in self._labels if ann.name == ann_type]
+        annotations = [
+            ann
+            for ann in self._labels
+            if re.match(ann_type_regex, ann.name) is not None
+        ]
+        logging.info(f"Annotation count for {ann_type_regex!r}: {len(annotations)}")
 
         intervals: list[_AnnotationIntervalScanner] = []
         for ann in annotations:
@@ -80,12 +90,13 @@ class VideoAnnotation:
     def get_teacher_scanner(
         self,
     ) -> interval_scanner.IntervalScanner[_AnnotationIntervalScanner]:
-        return self._get_scanner(_ANNOTATION_TEACHER)
+        return self._get_scanner(_ANNOTATION_TEACHER_REGEX)
 
+    # Used in vision_processor.py.
     def get_student_scanner(
         self,
     ) -> interval_scanner.IntervalScanner[_AnnotationIntervalScanner]:
-        return self._get_scanner(_ANNOTATION_STUDENT)
+        return self._get_scanner(_ANNOTATION_STUDENT_REGEX)
 
 
 class AnnotationBlur(VideoAnnotation):
@@ -95,25 +106,17 @@ class AnnotationBlur(VideoAnnotation):
         super().__init__(movie_path)
 
         # Set up the scanners one time to scan for intersecting annotations to blur.
-        self._scanner_blur = self._get_scanner(_ANNOTATION_BLUR)
-        self._scanner_teacher = self._get_scanner(_ANNOTATION_TEACHER)
-        self._scanner_student = self._get_scanner(_ANNOTATION_STUDENT)
+        self._scanner_blur = self._get_scanner(_ANNOTATION_BLUR_REGEX)
+        if _WINDOW_BASED_BLUR:
+            self._scanner_teacher = self._get_scanner(_ANNOTATION_TEACHER_REGEX)
+            self._scanner_student = self._get_scanner(_ANNOTATION_STUDENT_REGEX)
+        else:
+            self._scanner_teacher = interval_scanner.IntervalScanner([])
+            self._scanner_student = interval_scanner.IntervalScanner([])
 
         # Cached blur image, to allow lazy computation of blurred image only if needed.
         self._blur_cache_t: float = -1.0
         self._blur_cache: cv2.typing.MatLike | None = None
-
-    def _get_scanner(
-        self, ann_type: str
-    ) -> interval_scanner.IntervalScanner[_AnnotationIntervalScanner]:
-        annotations = [ann for ann in self._labels if ann.name == ann_type]
-
-        intervals: list[_AnnotationIntervalScanner] = []
-        for ann in annotations:
-            interval = (ann.label.start, ann.label.end)
-            intervals.append({"interval": interval, "label": ann.label})
-
-        return interval_scanner.IntervalScanner(intervals)
 
     def _handle_windows(
         self,
