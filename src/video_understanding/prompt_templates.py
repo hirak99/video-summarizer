@@ -19,7 +19,7 @@ ROLE_IDENTIFIER_PROMPT_TEMPLATE = [
     "" 'The `role` can be either "Teacher" or "Student".',
 ]
 
-STUDENT_HIRING_PROMPT_VERSION = 4  # Increase if you change the prompt.
+STUDENT_HIRING_PROMPT_VERSION = 5  # Increase if you change the prompt.
 STUDENT_HIRING_PROMPT_TEMPLATE: list[str] = [
     "Following transcript is from session named '{task_description}':",
     "",
@@ -48,7 +48,9 @@ STUDENT_HIRING_PROMPT_TEMPLATE: list[str] = [
     "",
     "Then respond with timestamped instances showing weakness or strength.",
     "- Use a combination of your own knowledge and the teacher's instructions to decide useful instances.",
-    "- Clips should have 10-20 seconds per instance, with relevant context. Prioritize student talking, also include teacher response if relevant.",
+    "- Clips should have 10-20 seconds per instance.",
+    "- Please capture all the relevant context. Prioritize student talking, also include teacher response if relevant.",
+    "- Do not cut off if they continue to talk on the same topic.",
     "- Specify importance on a scale of 1-10 for each instance.",
     "- If there are no relevant instances, output an empty array.",
     "- Double check the time intervals to ensure that the selected time range includes the entire exchange of the justification.",

@@ -22,9 +22,9 @@ _MIN_SENTENCE_LENGTH = 0.5
 
 # Controls for splitting long captions.
 # Splitting will be considered after these many words. The word must end with sentence-ending char to split.
-_SPLIT_AFTER_WORDS = 15
+_SPLIT_AFTER_WORDS = 20
 # Will not split if remaining words are <= this count.
-_NO_SPLIT_IF_REMAINING = 6
+_NO_SPLIT_IF_REMAINING = 8
 
 
 def _union_intervals(intervals: list[tuple[float, float]]):

@@ -80,7 +80,7 @@ class VideoFlowGraph:
                 "diarization_file": diarize_node,
                 "out_file_stem": self._out_stem_const,
             },
-            version=4,
+            version=5,
         )
         speaker_assign_node = graph.add_node(
             6,
@@ -177,7 +177,8 @@ class VideoFlowGraph:
             },
             version=f"{highlights_logic_ver}.{prompt_templates.TEACHER_HIRING_PROMPT_VERSION}",
         )
-        del self.highlights_teacher_hiring  # We are not yet generating teacher highlights.
+        # We are not yet generating teacher highlights.
+        del self.highlights_teacher_hiring
 
         self.ocr_detect_node = graph.add_node(
             12,
