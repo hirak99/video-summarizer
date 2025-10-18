@@ -93,22 +93,34 @@ def do_blur(
 
 
 def multiline_text(
-    image: Image.Image, caption_text: str, caption_color: tuple[int, int, int]
+    image: Image.Image,
+    caption_text: str,
+    caption_color: tuple[int, int, int],
+    # The width prop and height prop, where the caption will be rendered.
+    position_prop: tuple[float, float],
+    caption_width_prop: float,
+    anchor: str | None,
+    align: str,
 ) -> Image.Image:
     caption_image = Image.new("RGBA", image.size, (0, 0, 0, 0))
     caption_draw = ImageDraw.Draw(caption_image)
 
-    def caption_bbox(caption_text):
+    position = (
+        int(image.width * position_prop[0]),
+        int(image.height * position_prop[1]),
+    )
+
+    def caption_bbox(caption_text: str):
         return caption_draw.multiline_textbbox(
-            (image.width // 2, image.height - 100),  # Position (bottom center)
+            position,
             caption_text,
             font_size=36,
-            anchor="mm",  # Middle-middle anchor
-            align="center",
+            anchor=anchor,
+            align=align,
         )
 
     # Function to split text into multiple lines based on maximum width
-    def wrap_text(caption_text, max_width):
+    def wrap_text(caption_text: str, max_width: int) -> str:
         words = caption_text.split(" ")
         lines = []
         current_line = ""
@@ -132,7 +144,6 @@ def multiline_text(
         return "\n".join(lines)
 
     # Get the width available for the text box
-    caption_width_prop = 0.8  # 80% of the full width.
     max_caption_width = int(image.width * caption_width_prop)
 
     caption_text = wrap_text(caption_text, max_caption_width)
@@ -146,11 +157,11 @@ def multiline_text(
 
     # Draw caption text as subtitle.
     caption_draw.multiline_text(
-        (image.width // 2, image.height - 100),  # Position (bottom center)
+        position,
         caption_text,
         fill=caption_color,
         font_size=36,
-        anchor="mm",  # Middle-middle anchor
-        align="center",
+        anchor=anchor,
+        align=align,
     )
     return Image.alpha_composite(image, caption_image)

@@ -239,7 +239,14 @@ class MovieCompiler:
             caption_color = caption_pallette.get(caption["speaker"], (255, 255, 255))
             caption_text = caption["text"]
             image = movie_compiler_utils.multiline_text(
-                image, caption_text, caption_color
+                image,
+                caption_text,
+                caption_color,
+                # Caption bounding and alignment parameters.
+                position_prop=(0.02, 0.92),  # Left, bottom.
+                caption_width_prop=0.3,  # 30% of the width.
+                anchor="ld",
+                align="left",
             )
 
         return np.array(image.convert("RGB"))
