@@ -29,8 +29,8 @@ class VideoFlowGraph:
         graph = process_graph.ProcessGraph(dry_run=dry_run)
 
         # Don't re-use purged node ids.
-        # Next Id: 19
-        # Id(s) deprecated: 3, 11.
+        # Next Id: 20
+        # Id(s) deprecated: 3, 11, 16.
         self._source_file_const = graph.add_constant_node(
             0, name="Source Video", type=str
         )
@@ -165,7 +165,7 @@ class VideoFlowGraph:
             version=f"{highlights_logic_ver}.{prompt_templates.STUDENT_RESUME_PROMPT_VERSION}",
         )
         self.highlights_teacher_hiring = graph.add_node(
-            16,
+            19,
             highlights_selector.HighlightsSelector,
             {
                 "compilation_type": video_flow_types.CompilationType.TEACHER_HIRING,
@@ -177,6 +177,7 @@ class VideoFlowGraph:
             },
             version=f"{highlights_logic_ver}.{prompt_templates.TEACHER_HIRING_PROMPT_VERSION}",
         )
+        del self.highlights_teacher_hiring  # We are not yet generating teacher highlights.
 
         self.ocr_detect_node = graph.add_node(
             12,
@@ -193,7 +194,6 @@ class VideoFlowGraph:
             self.ocr_detect_node,
             self.highlights_student_hiring,
             self.highlights_student_resume,
-            self.highlights_teacher_hiring,
         ]
         if makeviz:
             final_nodes.append(visualize_node)
