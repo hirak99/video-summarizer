@@ -1,10 +1,12 @@
 import logging
 import sys
 
+import httpx
 import openai
 from openai.types import chat
 from openai.types import responses
 
+from . import abstract_llm
 from . import openai_type_helper
 
 # Default is True, which uses streaming mode to echo responses to stderr.
@@ -60,10 +62,9 @@ def streamed_openai_response(
         if "must be verified to stream" in e.message:
             logging.error("Note to developer: Try adding the model to _NON_STREAMABLE.")
         raise  # Re-raise.
-    except openai.APIConnectionError as e:
-        # TODO: This should be thrown as an exception, and handled appropriately.
-        logging.warning(f"openai.APIConnectionError: {e}")
-        return "(LLM server error)"
+    except (openai.APIConnectionError, httpx.RemoteProtocolError) as e:
+        logging.warning(f"Error {e}")
+        raise abstract_llm.RetriableException() from e
     tokens: list[str] = []
     logging.info(f"Streaming response to stderr:")
     try:
@@ -75,8 +76,7 @@ def streamed_openai_response(
                 print(token, end="", flush=True)
     except openai.APIError as e:
         logging.warning(f"openai.APIError: {e}")
-        # Rely on parser to catch the error, for example if JSON is expected.
-        return "(LLM server error)"
+        raise abstract_llm.RetriableException() from e
     finally:
         print(file=sys.stderr)  # Newline.
     return "".join(tokens)

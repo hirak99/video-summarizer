@@ -133,7 +133,6 @@ class OpenAiLlmInstance(abstract_llm.AbstractLlm):
         """Returns the model ID for the current instance."""
         return f"OpenAI {self.model_id}"
 
-    # TODO: Implement @retry(exceptions=..., delay=..., tries=...)
     @override
     def do_prompt(self, prompt: str, max_tokens: int) -> str:
         return openai_utils.streamed_openai_response(

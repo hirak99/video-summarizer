@@ -1,10 +1,19 @@
 import abc
 import logging
 import pathlib
+import time
 
 from typing import Any, Callable
 
 _NUM_RETRIES = 3
+_EXCEPTION_RETRY_DELAY = 3
+
+
+class RetriableException(Exception):
+    """Raised when an LLM call fails and should be retried."""
+
+    # Implementations should raise this exception on issues that should be
+    # retried, for example network failures.
 
 
 class AbstractLlm(abc.ABC):
@@ -80,14 +89,26 @@ class AbstractLlm(abc.ABC):
         retries_left = _NUM_RETRIES
         logging.info(f"Sending prompt: {prompt}")
         while True:
+            retries_left -= 1
             # Pass on the image= arg only if it is given.
             extra_kwargs = {}
             if image_b64 is not None:
                 extra_kwargs.update(image_b64=image_b64)
 
-            response: Any = self.do_prompt(
-                prompt, max_tokens=max_tokens, **extra_kwargs
-            )
+            try:
+                response: Any = self.do_prompt(
+                    prompt, max_tokens=max_tokens, **extra_kwargs
+                )
+            except RetriableException as e:
+                logging.warning(f"RetriableException: {e}")
+                if retries_left <= 0:
+                    logging.warning(
+                        "Maximum retries reached, but encountered exception."
+                    )
+                    raise
+                logging.info(f"Retrying in {_EXCEPTION_RETRY_DELAY} seconds...")
+                time.sleep(_EXCEPTION_RETRY_DELAY)
+                continue
 
             processed_response = response
             for parser in transformers:
@@ -107,7 +128,6 @@ class AbstractLlm(abc.ABC):
                     additional_info=log_additional_info,
                 )
                 return processed_response
-            retries_left -= 1
             logging.info(f"Retries left: {retries_left}")
             if retries_left <= 0:
                 raise RuntimeError(
