@@ -197,8 +197,16 @@ class _VisionProcessor:
         t = 5.0
         clip_duration: Any = self._clip.duration
         assert isinstance(clip_duration, float)
+
+        # Create a subdirectory for each call.
+        log_dir = misc_utils.file_stem_to_log_stem(self._out_file_stem)
+        log_dir = os.path.dirname(log_dir)
+        log_dir = os.path.join(log_dir, f"vlm_{self._timestamp}")
+        os.makedirs(log_dir, exist_ok=True)
+        logging.info(f"Logging VLM calls to: {log_dir!r}")
+
         while t < clip_duration - _RESOLUTION_S:
-            self._process_frame(t)
+            self._process_frame(t, log_dir)
             self._partial_save()
             t += _RESOLUTION_S
 
@@ -230,7 +238,7 @@ class _VisionProcessor:
 
         return self._yolo_detector.crop_to_detections(image, f"{t=}")
 
-    def _process_frame(self, t: float) -> None:
+    def _process_frame(self, t: float, log_dir: str) -> None:
         frame = self._clip.get_frame(t)
         if frame is None:
             logging.warning(f"Could not find frame at {t}.")
@@ -258,8 +266,8 @@ class _VisionProcessor:
                 return
 
         call_count = len(self._scene_descriptions.chronology)
-        log_stem = misc_utils.file_stem_to_log_stem(self._out_file_stem)
-        log_stem += f".scene_understanding_{self._timestamp}_student_#{call_count:05d}"
+
+        log_stem = os.path.join(log_dir, f"call_#{call_count:05d}")
 
         if random.random() < _IMAGE_LOG_PROBABILITY:
             # Save the image into logs.
