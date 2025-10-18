@@ -64,7 +64,7 @@ def streamed_openai_response(
         raise  # Re-raise.
     except (openai.APIConnectionError, httpx.RemoteProtocolError) as e:
         logging.warning(f"Error {e}")
-        raise abstract_llm.RetriableException() from e
+        raise abstract_llm.RetriableException(retry_delay_s=3) from e
     tokens: list[str] = []
     logging.info(f"Streaming response to stderr:")
     try:

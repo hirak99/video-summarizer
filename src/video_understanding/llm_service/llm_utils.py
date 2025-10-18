@@ -1,6 +1,8 @@
 import json
 import logging
 
+from . import abstract_llm
+
 from typing import Any
 
 
@@ -23,7 +25,7 @@ def remove_thinking(response: str) -> str:
     return "\n".join(result)
 
 
-def parse_as_json(response: Any) -> Any | None:
+def parse_as_json(response: Any) -> Any:
     try:
         response_lines = (line.strip() for line in response.strip().splitlines())
         response = "\n".join(line for line in response_lines if line)
@@ -37,4 +39,4 @@ def parse_as_json(response: Any) -> Any | None:
         return json.loads(response)
     except json.JSONDecodeError as e:
         logging.warning(f"Failed to parse response as JSON: {e}")
-        return None
+        raise abstract_llm.RetriableException() from e

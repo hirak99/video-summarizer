@@ -6,14 +6,18 @@ import time
 from typing import Any, Callable
 
 _NUM_RETRIES = 3
-_EXCEPTION_RETRY_DELAY = 3
 
 
 class RetriableException(Exception):
-    """Raised when an LLM call fails and should be retried."""
+    """Raised when an LLM call fails and should be retried.
 
-    # Implementations should raise this exception on issues that should be
-    # retried, for example network failures.
+    Implementations should raise this exception on issues that should be
+    retried, for example network failures.
+    Parsers can also raise this error to request retries.
+    """
+
+    def __init__(self, *, retry_delay_s: int = 0) -> None:
+        self.retry_delay_s = retry_delay_s
 
 
 class AbstractLlm(abc.ABC):
@@ -77,14 +81,17 @@ class AbstractLlm(abc.ABC):
         Args:
             prompt: The prompt to send to the LLM.
 
+            max_tokens: The maximum number of tokens to get from the LLM.
+
             transformers: A list of functions that will be applied to the
             response. If the input cannot be parsed by any of the transformers,
-            it should return None.
+            it should raise RetriableError().
 
-            retries: The number of times to retry if the response does not pass
-            validation.
+            log_file: A text file which will be created or overwritten.
 
-            max_tokens: The maximum number of tokens to get from the LLM.
+            log_additional_info: Information to be added to the log file.
+
+            image_b64: Optional image as part of the query.
         """
         retries_left = _NUM_RETRIES
         logging.info(f"Sending prompt: {prompt}")
@@ -99,40 +106,27 @@ class AbstractLlm(abc.ABC):
                 response: Any = self.do_prompt(
                     prompt, max_tokens=max_tokens, **extra_kwargs
                 )
+                processed_response = response
+                for parser in transformers:
+                    processed_response = parser(processed_response)
             except RetriableException as e:
                 logging.warning(f"RetriableException: {e}")
+                logging.info(f"Retries left: {retries_left}")
                 if retries_left <= 0:
-                    logging.warning(
-                        "Maximum retries reached, but encountered exception."
-                    )
+                    logging.warning("Exhausted all retries.")
                     raise
-                logging.info(f"Retrying in {_EXCEPTION_RETRY_DELAY} seconds...")
-                time.sleep(_EXCEPTION_RETRY_DELAY)
+                logging.info(f"Retry delay: {e.retry_delay_s}s")
+                time.sleep(e.retry_delay_s)
                 continue
 
-            processed_response = response
-            for parser in transformers:
-                processed_response = parser(processed_response)
-                if processed_response is None:
-                    logging.info(f"Response did not pass parser")
-                    break
-            if processed_response is not None:
-                logging.info(
-                    f"Response passed all parsers with {retries_left} retries left."
-                )
-                self._log_llm_debug_info(
-                    log_fname=log_file,
-                    prompt=prompt,
-                    raw_response=response,
-                    processed_response=processed_response,
-                    additional_info=log_additional_info,
-                )
-                return processed_response
-            logging.info(f"Retries left: {retries_left}")
-            if retries_left <= 0:
-                raise RuntimeError(
-                    "Response did not pass validation after maximum retries."
-                )
+            self._log_llm_debug_info(
+                log_fname=log_file,
+                prompt=prompt,
+                raw_response=response,
+                processed_response=processed_response,
+                additional_info=log_additional_info,
+            )
+            return processed_response
 
     def finalize(self):
         """Optionally implement this to release resources."""
