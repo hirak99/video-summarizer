@@ -3,6 +3,7 @@ from .. import prompt_templates
 from .. import video_flow_graph
 from ..llm_service import abstract_llm
 from ..llm_service import llm
+from ..llm_service import llm_utils
 from ..utils import prompt_utils
 from ..utils import templater
 
@@ -63,7 +64,7 @@ class DigestVqa(abstract_vqa.AbstractVqa):
 
         response: str = self._loaded_model.do_prompt_and_parse(
             "\n".join(prompt),
-            transformers=[llm.remove_thinking],
+            transformers=[llm_utils.remove_thinking],
             max_tokens=4096,
         )
 

@@ -120,7 +120,7 @@ class HighlightsSelector(process_node.ProcessNode):
 
         response_list = self._llm_instance.do_prompt_and_parse(
             "\n".join(prompt),
-            transformers=[llm.remove_thinking, llm_utils.parse_as_json],
+            transformers=[llm_utils.remove_thinking, llm_utils.parse_as_json],
             max_tokens=4096,
             log_file=f"{out_file_name}.llm_log.v{video_config.VERSION}.{datetime_str}.txt",
         )

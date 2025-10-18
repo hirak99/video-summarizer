@@ -59,25 +59,6 @@ def _query_llama(
         return ""
 
 
-def remove_thinking(response: str) -> str:
-    # If there is "<think>" in a line, remove all lines until we encounter "</think>".
-    lines = response.splitlines()
-    result: list[str] = []
-    in_thinking_block = False
-    for line in lines:
-        line = line.rstrip()
-        if "<think>" == line.strip():
-            in_thinking_block = True
-            continue
-        if "</think>" == line.strip():
-            in_thinking_block = False
-            continue
-        if not in_thinking_block:
-            result.append(line)
-    logging.info(f"Removed {len(lines) - len(result)} thinking lines from response.")
-    return "\n".join(result)
-
-
 # Returns None if the response is not valid JSON.
 def _qwen_prompt(prompt: str) -> str:
     """Formats the prompt for Qwen."""

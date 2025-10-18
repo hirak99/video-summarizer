@@ -91,7 +91,7 @@ class RoleIdentifier(process_node.ProcessNode):
         response = self._llm_instance.do_prompt_and_parse(
             "\n".join(prompt_lines),
             transformers=[
-                llm.remove_thinking,
+                llm_utils.remove_thinking,
                 llm_utils.parse_as_json,
                 functools.partial(_result_parser, speaker_aliases=speaker_aliases),
             ],

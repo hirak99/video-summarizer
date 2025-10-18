@@ -298,7 +298,7 @@ class _VisionProcessor:
 
 class VisionProcess(process_node.ProcessNode):
     def __init__(self) -> None:
-        self._model = vision.OpenAiVision()
+        self._model = vision.OpenAiVision("gpt-4.1")
 
     @override
     def process(
