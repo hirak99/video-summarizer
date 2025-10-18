@@ -80,8 +80,7 @@ class VideoFlowGraph:
                 "diarization_file": diarize_node,
                 "out_file_stem": self._out_stem_const,
             },
-            version=2,
-            invalidate_before=1759141204,
+            version=3,
         )
         speaker_assign_node = graph.add_node(
             6,

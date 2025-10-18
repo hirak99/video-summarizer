@@ -8,6 +8,7 @@ import whisper_timestamped as whisper  # type: ignore
 from . import voice_separator
 from .. import video_config
 from ...flow import process_node
+from ..utils import misc_utils
 
 from typing import NotRequired, override, TypedDict
 
@@ -39,6 +40,10 @@ def _text_is_rolling(text: str) -> bool:
     words = [w.strip() for w in text.split()]
     # Checked that the word length is <= 51 for good captioning.
     # So > 60 triggering should be precise.
+    #
+    # NOTE: See also _split_long_sentences() in transcription_refiner.py.
+    # The presence of ",?." indicate proper sentence structure, so no breaking issue with transcription.
+    # However, the sentence can be broken up, as in that method.
     return len(words) > 60 and not any(word and word[-1] in ",?." for word in words)
 
 
@@ -217,7 +222,7 @@ class WhisperTranscribe(process_node.ProcessNode):
                 transcription_so_far += transcription
                 return transcription_so_far
 
-            logging.info(f"Bad transcription detected. Reason: {cut_reason}")
+            logging.warning(f"Bad transcription detected. Reason: {cut_reason}")
             # Redo the transcription from where it is broken.
             transcription_so_far += transcription[:bad_index]
             # Avoid infinite loop by making sure start_time increases.
@@ -228,7 +233,7 @@ class WhisperTranscribe(process_node.ProcessNode):
 
     @override
     def process(self, source_file: str, out_file_stem: str) -> str:
-        out_file = out_file_stem + ".transcription.json"
+        out_file = f"{out_file_stem}_{misc_utils.timestamp_str()}.transcription.json"
         with voice_separator.get_wav(source_file) as source_file:
             transcription = self._transcribe_with_guards(source_file)
         with open(out_file, "w") as f:

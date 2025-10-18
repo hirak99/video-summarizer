@@ -8,7 +8,7 @@ from . import voice_separator
 from ...flow import process_node
 from ..utils import interval_scanner
 
-from typing import override
+from typing import Iterable, Iterator, override
 
 # Only silences bigger than this will be corrected.
 # I think at about 4 it starts to become uncomfortably long silence.
@@ -78,6 +78,57 @@ def _trim_end(caption: transcriber.TranscriptionT, new_end: float) -> None:
     _trim_caption(caption, new_end=new_end)
 
 
+_MAX_SENTENCE_WORDS = 20
+
+
+# TODO: Add unit test.
+def _split_long_captions(
+    captions: Iterable[transcriber.TranscriptionT],
+) -> Iterator[transcriber.TranscriptionT]:
+    for caption in captions:
+        words = caption["words"]
+        if len(words) <= _MAX_SENTENCE_WORDS:
+            yield caption
+            continue
+
+        # Reconstruct using the words.
+        def reconstruct(start_index: int, end_index: int) -> transcriber.TranscriptionT:
+            if start_index == 0 and end_index == len(words):
+                # Avoid unnecessary processing.
+                logging.info(f"Returning full caption at {caption['interval']=}")
+                return caption
+
+            full_text = "".join(
+                # The " " prefix is how Whisper does it, because there is always a space before sentence starts.
+                " " + x["text"]
+                for x in words[start_index:end_index]
+            )
+            result: transcriber.TranscriptionT = {
+                "interval": (words[start_index]["start"], words[end_index - 1]["end"]),
+                "text": full_text,
+                "words": words[start_index:end_index],
+            }
+            if start_index == 0:
+                if "cut_reason" in caption:
+                    result["cut_reason"] = caption["cut_reason"]
+            else:
+                result["cut_reason"] = "split long caption"
+            logging.info(
+                f"Splitting caption from {start_index} to {end_index} ({len(words)=}): {result['text']}"
+            )
+            return result
+
+        start_i = 0
+        for end_i in range(len(words)):
+            word = words[end_i]["text"]
+            if end_i - start_i >= _MAX_SENTENCE_WORDS:
+                if word[-1] in "?.":
+                    yield reconstruct(start_i, end_i + 1)
+                    start_i = end_i + 1
+        if start_i < len(words) - 1:
+            yield reconstruct(start_i, len(words))
+
+
 class TranscriptionRefiner(process_node.ProcessNode):
     @override
     def process(
@@ -104,7 +155,7 @@ class TranscriptionRefiner(process_node.ProcessNode):
             [{"interval": x} for x in speech_times]
         )
 
-        for caption in captions:
+        for caption in _split_long_captions(captions):
             start, end = caption["interval"]
             speech_intervals = speech_scanner.overlapping_intervals(start, end)
             if not speech_intervals:
@@ -114,8 +165,13 @@ class TranscriptionRefiner(process_node.ProcessNode):
             # If caption starts or ends with a long silence, trim it.
             # Note: This doesn't take into account if there is long silence after a first short speech.
             # However, I have not seen that kind of error out of Whisper yet.
-            speech_start = speech_intervals[0]["interval"][0]
-            speech_end = speech_intervals[-1]["interval"][1]
+
+            # Note: Intervals are not sorted! So following won't work -
+            # speech_start = speech_intervals[0]["interval"][0]
+            # speech_end = speech_intervals[-1]["interval"][1]
+            speech_start = min(x["interval"][0] for x in speech_intervals)
+            speech_end = max(x["interval"][1] for x in speech_intervals)
+
             if start < speech_start - _SILENCE_THRESHOLD:
                 _trim_start(caption, speech_start - _MAINTAIN_SILENCE)
                 logging.info(

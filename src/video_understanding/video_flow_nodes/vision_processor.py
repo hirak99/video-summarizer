@@ -6,7 +6,6 @@
 #
 # So temp dir should be cleared if VERSION changes for a clean run.
 #
-import datetime
 import hashlib
 import json
 import logging
@@ -151,7 +150,7 @@ class _VisionProcessor:
         self._yolo_detector = yolo_window_detector.YoloWindowDetector()
 
         # Used to name files generated.
-        self._timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        self._timestamp = misc_utils.timestamp_str()
 
         self._vision = vision_model
         self._source_movie = movie_path

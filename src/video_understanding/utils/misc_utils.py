@@ -1,3 +1,4 @@
+import datetime
 import functools
 import hashlib
 import os
@@ -42,3 +43,8 @@ def fingerprint(data: str) -> str:
     # Compute a unique 7-char fingerprint.
     # Used in saved outputs and filenames.
     return hashlib.sha256(data.encode("utf-8")).hexdigest()[:7]
+
+
+def timestamp_str() -> str:
+    """Return a consistently formatted timestamp string."""
+    return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
