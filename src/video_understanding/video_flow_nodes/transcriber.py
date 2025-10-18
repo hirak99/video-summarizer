@@ -233,7 +233,7 @@ class WhisperTranscribe(process_node.ProcessNode):
 
     @override
     def process(self, source_file: str, out_file_stem: str) -> str:
-        out_file = f"{out_file_stem}_{misc_utils.timestamp_str()}.transcription.json"
+        out_file = f"{out_file_stem}.transcription.{misc_utils.timestamp_str()}.json"
         with voice_separator.get_wav(source_file) as source_file:
             transcription = self._transcribe_with_guards(source_file)
         with open(out_file, "w") as f:

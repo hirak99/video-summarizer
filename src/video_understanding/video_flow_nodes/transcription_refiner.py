@@ -7,6 +7,7 @@ from . import transcriber
 from . import voice_separator
 from ...flow import process_node
 from ..utils import interval_scanner
+from ..utils import misc_utils
 
 from typing import Iterable, Iterator, override
 
@@ -18,6 +19,12 @@ _SILENCE_THRESHOLD = 4.0
 _MAINTAIN_SILENCE = 1.0
 
 _MIN_SENTENCE_LENGTH = 0.5
+
+# Controls for splitting long captions.
+# Splitting will be considered after these many words. The word must end with sentence-ending char to split.
+_SPLIT_AFTER_WORDS = 15
+# Will not split if remaining words are less than this count.
+_NO_SPLIT_IF_REMAINING_LESS_THAN = 6
 
 
 def _union_intervals(intervals: list[tuple[float, float]]):
@@ -78,21 +85,20 @@ def _trim_end(caption: transcriber.TranscriptionT, new_end: float) -> None:
     _trim_caption(caption, new_end=new_end)
 
 
-_MAX_SENTENCE_WORDS = 20
-
-
 # TODO: Add unit test.
 def _split_long_captions(
     captions: Iterable[transcriber.TranscriptionT],
 ) -> Iterator[transcriber.TranscriptionT]:
     for caption in captions:
         words = caption["words"]
-        if len(words) <= _MAX_SENTENCE_WORDS:
+        if len(words) <= _SPLIT_AFTER_WORDS:
             yield caption
             continue
 
         # Reconstruct using the words.
         def reconstruct(start_index: int, end_index: int) -> transcriber.TranscriptionT:
+            if "prick" in caption["text"]:
+                logging.info(f"{start_index=} {end_index=} {caption['text']=}")
             if start_index == 0 and end_index == len(words):
                 # Avoid unnecessary processing.
                 logging.info(f"Returning full caption at {caption['interval']=}")
@@ -119,9 +125,11 @@ def _split_long_captions(
             return result
 
         start_i = 0
-        for end_i in range(len(words)):
+        for end_i in range(len(words) - _NO_SPLIT_IF_REMAINING_LESS_THAN):
             word = words[end_i]["text"]
-            if end_i - start_i >= _MAX_SENTENCE_WORDS:
+            if "prick" in caption["text"]:
+                logging.info(f"{start_i=} {end_i=} {word=} {len(words)=}")
+            if end_i + 1 - start_i >= _SPLIT_AFTER_WORDS:
                 if word[-1] in "?.":
                     yield reconstruct(start_i, end_i + 1)
                     start_i = end_i + 1
@@ -183,7 +191,9 @@ class TranscriptionRefiner(process_node.ProcessNode):
                     f"Trimming end, because caption {end=}, {speech_end=}; corrected {caption=}"
                 )
 
-        out_file = out_file_stem + ".captions_corrected.json"
+        out_file = (
+            f"{out_file_stem}.captions_corrected.{misc_utils.timestamp_str()}.json"
+        )
         with open(out_file, "w") as f:
             json.dump(captions, f)
 
