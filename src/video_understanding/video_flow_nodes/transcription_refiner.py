@@ -23,8 +23,8 @@ _MIN_SENTENCE_LENGTH = 0.5
 # Controls for splitting long captions.
 # Splitting will be considered after these many words. The word must end with sentence-ending char to split.
 _SPLIT_AFTER_WORDS = 15
-# Will not split if remaining words are less than this count.
-_NO_SPLIT_IF_REMAINING_LESS_THAN = 6
+# Will not split if remaining words are <= this count.
+_NO_SPLIT_IF_REMAINING = 6
 
 
 def _union_intervals(intervals: list[tuple[float, float]]):
@@ -97,8 +97,6 @@ def _split_long_captions(
 
         # Reconstruct using the words.
         def reconstruct(start_index: int, end_index: int) -> transcriber.TranscriptionT:
-            if "prick" in caption["text"]:
-                logging.info(f"{start_index=} {end_index=} {caption['text']=}")
             if start_index == 0 and end_index == len(words):
                 # Avoid unnecessary processing.
                 logging.info(f"Returning full caption at {caption['interval']=}")
@@ -125,10 +123,8 @@ def _split_long_captions(
             return result
 
         start_i = 0
-        for end_i in range(len(words) - _NO_SPLIT_IF_REMAINING_LESS_THAN):
+        for end_i in range(len(words) - _NO_SPLIT_IF_REMAINING):
             word = words[end_i]["text"]
-            if "prick" in caption["text"]:
-                logging.info(f"{start_i=} {end_i=} {word=} {len(words)=}")
             if end_i + 1 - start_i >= _SPLIT_AFTER_WORDS:
                 if word[-1] in "?.":
                     yield reconstruct(start_i, end_i + 1)
@@ -163,8 +159,10 @@ class TranscriptionRefiner(process_node.ProcessNode):
             [{"interval": x} for x in speech_times]
         )
 
+        corrected_captions: list[transcriber.TranscriptionT] = []
         for caption in _split_long_captions(captions):
             start, end = caption["interval"]
+            logging.info(f"{start=} {end=} {caption['text']=}")
             speech_intervals = speech_scanner.overlapping_intervals(start, end)
             if not speech_intervals:
                 # Too many of these to make it a logging.warning().
@@ -190,11 +188,14 @@ class TranscriptionRefiner(process_node.ProcessNode):
                 logging.info(
                     f"Trimming end, because caption {end=}, {speech_end=}; corrected {caption=}"
                 )
+            corrected_captions.append(caption)
+
+        del captions  # Prevent inadvertent usage after this point.
 
         out_file = (
             f"{out_file_stem}.captions_corrected.{misc_utils.timestamp_str()}.json"
         )
         with open(out_file, "w") as f:
-            json.dump(captions, f)
+            json.dump(corrected_captions, f)
 
         return out_file
