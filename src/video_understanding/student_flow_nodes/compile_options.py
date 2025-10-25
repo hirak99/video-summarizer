@@ -18,7 +18,14 @@ def get_movie_options() -> movie_compiler.MovieOptions:
     global COMPILATION_TYPE
 
     # Default options.
-    movie_options = movie_compiler.MovieOptions()
+    caption_options = movie_compiler.CaptionOptions(
+        position_prop=(0.02, 0.92),  # Left, bottom.
+        caption_width_prop=0.3,  # 30% of the width.
+        anchor="ld",
+        align="left",
+    )
+
+    movie_options = movie_compiler.MovieOptions(caption=caption_options)
 
     if COMPILATION_TYPE == video_flow_types.CompilationType.STUDENT_RESUME:
         # Use a pleasant saturated blue color.

@@ -23,9 +23,20 @@ from typing import Callable, TypedDict
 
 
 @dataclasses.dataclass
+class CaptionOptions:
+    position_prop: tuple[float, float]
+    caption_width_prop: float
+    anchor: str
+    align: str
+
+
+@dataclasses.dataclass
 class MovieOptions:
     """Class to define movie rendering options for the movie."""
 
+    # Caption positioning options.
+    caption: CaptionOptions
+    # Title text and bar color.
     text_color: tuple[int, int, int] = (255, 165, 0)
 
     # Background color for the timer bar for clips.
@@ -181,8 +192,8 @@ class MovieCompiler:
         self._executor = futures.ThreadPoolExecutor(max_workers=_HIGHLIGHT_MAX_WORKERS)
         self._executor_tasks: list[futures.Future[None]] = []
 
-    @staticmethod
     def _frame_hook(
+        self,
         getframe,
         t: float,
         duration: float,
@@ -243,10 +254,14 @@ class MovieCompiler:
                 caption_text,
                 caption_color,
                 # Caption bounding and alignment parameters.
-                position_prop=(0.02, 0.92),  # Left, bottom.
-                caption_width_prop=0.3,  # 30% of the width.
-                anchor="ld",
-                align="left",
+                # position_prop=(0.02, 0.92),  # Left, bottom.
+                # caption_width_prop=0.3,  # 30% of the width.
+                # anchor="ld",
+                # align="left",
+                position_prop=self._movie_options.caption.position_prop,
+                caption_width_prop=self._movie_options.caption.caption_width_prop,
+                anchor=self._movie_options.caption.anchor,
+                align=self._movie_options.caption.align,
             )
 
         return np.array(image.convert("RGB"))
