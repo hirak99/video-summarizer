@@ -26,6 +26,7 @@ from typing import Callable, TypedDict
 class CaptionOptions:
     position_prop: tuple[float, float]
     caption_width_prop: float
+    # Anchor ref.: https://pillow.readthedocs.io/en/stable/handbook/text-anchors.html
     anchor: str
     align: str
 

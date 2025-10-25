@@ -4,6 +4,13 @@ from ..video_flow_nodes import video_flow_types
 # Should be set by main before proceeding to compile.
 COMPILATION_TYPE = video_flow_types.CompilationType.UNKNOWN
 
+_CAPTION_POSITIONING = movie_compiler.CaptionOptions(
+    position_prop=(0.02, 0.6),  # Left, middle.
+    caption_width_prop=0.3,  # 30% of the width.
+    anchor="lm",  # See: https://pillow.readthedocs.io/en/stable/handbook/text-anchors.html
+    align="left",
+)
+
 
 def set_compilation_type(type: str):
     global COMPILATION_TYPE
@@ -18,14 +25,7 @@ def get_movie_options() -> movie_compiler.MovieOptions:
     global COMPILATION_TYPE
 
     # Default options.
-    caption_options = movie_compiler.CaptionOptions(
-        position_prop=(0.02, 0.92),  # Left, bottom.
-        caption_width_prop=0.3,  # 30% of the width.
-        anchor="ld",
-        align="left",
-    )
-
-    movie_options = movie_compiler.MovieOptions(caption=caption_options)
+    movie_options = movie_compiler.MovieOptions(caption=_CAPTION_POSITIONING)
 
     if COMPILATION_TYPE == video_flow_types.CompilationType.STUDENT_RESUME:
         # Use a pleasant saturated blue color.
