@@ -58,25 +58,26 @@ def streamed_openai_response(
             stream=True,
             max_completion_tokens=max_completion_tokens,
         )
-    except openai.BadRequestError as e:
-        if "must be verified to stream" in e.message:
-            logging.error("Note to developer: Try adding the model to _NON_STREAMABLE.")
-        raise  # Re-raise.
-    except (openai.APIConnectionError, httpx.RemoteProtocolError) as e:
-        logging.warning(f"Error {e}")
-        raise abstract_llm.RetriableException(retry_delay_s=3) from e
-    tokens: list[str] = []
-    logging.info(f"Streaming response to stderr:")
-    try:
+        tokens: list[str] = []
+        logging.info(f"Streaming response to stderr:")
         for event in stream:
             token = event.choices[0].delta.content
             # Token will be None at the end.
             if token is not None:
                 tokens.append(token)
                 print(token, end="", flush=True)
-    except openai.APIError as e:
-        logging.warning(f"openai.APIError: {e}")
-        raise abstract_llm.RetriableException() from e
+    except openai.BadRequestError as e:
+        if "must be verified to stream" in e.message:
+            logging.error("Note to developer: Try adding the model to _NON_STREAMABLE.")
+        raise  # Re-raise.
+    except (
+        openai.APIError,
+        openai.APIConnectionError,
+        httpx.RemoteProtocolError,
+        httpx.ReadError,
+    ) as e:
+        logging.warning(f"Error: {e}")
+        raise abstract_llm.RetriableException(retry_delay_s=3) from e
     finally:
         print(file=sys.stderr)  # Newline.
     return "".join(tokens)
