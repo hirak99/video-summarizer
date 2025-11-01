@@ -4,6 +4,7 @@ import subprocess
 import tempfile
 
 import cv2
+import moviepy
 from numpy import typing as npt
 import numpy as np
 from PIL import Image
@@ -11,6 +12,28 @@ from PIL import ImageDraw
 
 from . import interval_scanner
 from ..video_flow_nodes import ocr_detector
+
+
+def audio_speed(clip: moviepy.AudioClip, speed: float) -> moviepy.AudioClip:
+    """Change audio speed without changing pitch."""
+    if speed == 1:
+        return clip
+
+    with tempfile.TemporaryDirectory(prefix="_audio_speedup_") as tempdir:
+        fname = os.path.join(tempdir, "original.wav")
+        clip.write_audiofile(fname)
+        # Speedup with atempo.
+        cmd = [
+            "ffmpeg",
+            "-y",
+            "-i",
+            fname,
+            "-filter:a",
+            f"atempo={speed}",
+            os.path.join(tempdir, "speedup.wav"),
+        ]
+        subprocess.run(cmd, check=True)
+        return moviepy.AudioFileClip(os.path.join(tempdir, "speedup.wav"))
 
 
 def concatenate_movies(movie_paths: list[str], output_path: str) -> None:

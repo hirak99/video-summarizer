@@ -164,7 +164,11 @@ def _ffwd_silence(
     for silence_start, silence_end in silences:
         subclips.append(clip.subclipped(t, silence_start))
         clip_to_ffwd = clip.subclipped(silence_start, silence_end)
-        sped_up = speed_fx.apply(clip_to_ffwd)
+        sped_up_audio = movie_compiler_utils.audio_speed(
+            clip_to_ffwd.audio, _FFWD_SPEED
+        )
+        sped_up = speed_fx.apply(clip_to_ffwd.with_audio(None))
+        sped_up = sped_up.with_audio(sped_up_audio)
         sped_up = moviepy.CompositeVideoClip(
             [
                 sped_up,
