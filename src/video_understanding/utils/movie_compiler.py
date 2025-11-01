@@ -37,6 +37,8 @@ class CaptionOptions:
 class MovieOptions:
     """Class to define movie rendering options for the movie."""
 
+    # Will be resized if wrong size.
+    resize_to: tuple[int, int]
     # Caption positioning options.
     caption: CaptionOptions
     # Title text and bar color.
@@ -392,6 +394,13 @@ class MovieCompiler:
 
         duration = end - start
         clip = source_movie.subclipped(start, end)
+
+        required_size = self._movie_options.resize_to
+        if clip.size != required_size:
+            logging.info(
+                f"Resizing from {clip.size} to {required_size}: {source_movie_file}"
+            )
+            clip = clip.resized(new_size=required_size)
 
         clip = clip.transform(
             functools.partial(

@@ -26,7 +26,10 @@ def get_movie_options() -> movie_compiler.MovieOptions:
     global COMPILATION_TYPE
 
     # Default options.
-    movie_options = movie_compiler.MovieOptions(caption=_CAPTION_POSITIONING)
+    movie_options = movie_compiler.MovieOptions(
+        resize_to=(1920, 1080),
+        caption=_CAPTION_POSITIONING,
+    )
 
     if COMPILATION_TYPE == video_flow_types.CompilationType.STUDENT_RESUME:
         # Use a pleasant saturated blue color.
