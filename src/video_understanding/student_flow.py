@@ -66,6 +66,7 @@ def _main(
         },
         version=2,
     )
+    del eval_template_node  # Unused. Should drop this.
     movie_compile_node = graph.add_node(
         3,
         hiring_movie_compiler.HiringMovieCompiler,
@@ -106,7 +107,7 @@ def _main(
 
         student_const.set_value(student)
         teacher_const.set_value(teacher)
-        graph.run_upto([movie_compile_node, eval_template_node])
+        graph.run_upto([movie_compile_node])
 
         if video_config.TESTING_MODE:
             # Just do 1 for debugging.
