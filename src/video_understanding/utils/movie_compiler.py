@@ -29,6 +29,8 @@ class CaptionOptions:
     # Anchor ref.: https://pillow.readthedocs.io/en/stable/handbook/text-anchors.html
     anchor: str
     align: str
+    # RGBA. E.g. (0, 0, 0, 192) to create a dark black.
+    background_color: tuple[int, int, int, int]
 
 
 @dataclasses.dataclass
@@ -258,6 +260,7 @@ class MovieCompiler:
                 image,
                 caption_text,
                 caption_color,
+                self._movie_options.caption.background_color,
                 # Caption bounding and alignment parameters.
                 # position_prop=(0.02, 0.92),  # Left, bottom.
                 # caption_width_prop=0.3,  # 30% of the width.
@@ -417,7 +420,8 @@ class MovieCompiler:
             # font="/usr/share/fonts/truetype/msttcorefonts/Arial.ttf",
             font_size=36,
             color=f"rgb{self._movie_options.text_color}",
-            margin=(0, 0, 0, 50),
+            margin=(5, 5, 5, 10),
+            bg_color=self._movie_options.caption.background_color,
         )
         txt_desc = txt_desc.with_duration(clip.duration)
         txt_desc = fadein.apply(txt_desc)
@@ -428,7 +432,8 @@ class MovieCompiler:
             # font="/usr/share/fonts/truetype/msttcorefonts/Arial.ttf",
             font_size=36,
             color=f"rgb{self._movie_options.text_color}",
-            margin=(0, 0, 0, 50),
+            margin=(5, 5, 0, 10),
+            bg_color=self._movie_options.caption.background_color,
         )
         txt_movie_name = txt_movie_name.with_duration(clip.duration)
         if title_fade_in:

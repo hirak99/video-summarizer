@@ -9,6 +9,7 @@ _CAPTION_POSITIONING = movie_compiler.CaptionOptions(
     caption_width_prop=0.3,  # 30% of the width.
     anchor="lm",  # See: https://pillow.readthedocs.io/en/stable/handbook/text-anchors.html
     align="left",
+    background_color=(0, 0, 0, 192),
 )
 
 

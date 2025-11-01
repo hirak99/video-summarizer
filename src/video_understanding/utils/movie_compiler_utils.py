@@ -119,6 +119,7 @@ def multiline_text(
     image: Image.Image,
     caption_text: str,
     caption_color: tuple[int, int, int],
+    caption_bg: tuple[int, int, int, int],
     # The width prop and height prop, where the caption will be rendered.
     position_prop: tuple[float, float],
     caption_width_prop: float,
@@ -175,7 +176,7 @@ def multiline_text(
     bbox = caption_bbox(caption_text)
 
     caption_draw.rectangle(
-        [bbox[0] - 5, bbox[1] - 5, bbox[2] + 5, bbox[3] + 5], (0, 0, 0, 128)
+        [bbox[0] - 5, bbox[1] - 5, bbox[2] + 5, bbox[3] + 5], caption_bg
     )
 
     # Draw caption text as subtitle.
