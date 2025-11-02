@@ -40,19 +40,18 @@ def _labels_file(video_file: str) -> str:
     return labels_file
 
 
-def _load_labels_all_users(labels_file: str) -> manual_label_types.UserAnnotations:
+def _load_labels_all_users(labels_file: str) -> manual_label_types.AllAnnotationsV2:
     if os.path.exists(labels_file):
-        with open(labels_file, "r") as f:
-            return manual_label_types.UserAnnotations.model_validate_json(f.read())
+        return manual_label_types.AllAnnotationsV2.load(labels_file)
     logging.info(f"No file {labels_file!r}")
-    return manual_label_types.UserAnnotations(by_user={})
+    return manual_label_types.AllAnnotationsV2(by_user={})
 
 
 # Simple function to get labels from a JSON file
 def _load_labels(labels_file: str) -> list[manual_label_types.AnnotationProps]:
     all_users = _load_labels_all_users(labels_file)
     if _MANUAL_LABELER in all_users.by_user:
-        return all_users.by_user[_MANUAL_LABELER]
+        return all_users.by_user[_MANUAL_LABELER].annotations
     return []
 
 

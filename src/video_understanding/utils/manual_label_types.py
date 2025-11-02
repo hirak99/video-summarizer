@@ -31,5 +31,23 @@ class AnnotationProps(pydantic.BaseModel):
     label: BoxLabel
 
 
-class UserAnnotations(pydantic.BaseModel):
-    by_user: dict[str, list[AnnotationProps]]
+class UserAnnotation(pydantic.BaseModel):
+    annotations: list[AnnotationProps]
+
+
+class AllAnnotationsV2(pydantic.BaseModel):
+    # Annotation data format.
+    format: Literal["v2"] = "v2"
+    # Annotations by all workspaces.
+    # If the user does not have a workspace defined, the key will default to username.
+    # The key "by_user" is legacy name, better understood as "by_workspace".
+    by_user: dict[str, UserAnnotation]
+
+    @classmethod
+    def load(cls, v2_file: str) -> "AllAnnotationsV2":
+        with open(v2_file, "r") as f:
+            return cls.model_validate_json(f.read())
+
+    def save(self, v2_file: str):
+        with open(v2_file, "w") as f:
+            f.write(self.model_dump_json(indent=2))
