@@ -1,7 +1,5 @@
 # All manual overrides should be stored here, to isolate business logic.
 
-import logging
-
 # Used in hiring_highlight_curator.
 # Add segment hashes to drop here.
 # But prefer handling this in other ways - e.g. with is_clip_ineligible.
@@ -18,20 +16,16 @@ def _mmss(mmss: str) -> int:
 
 
 # Video segments that should not be processed.
-_INELIGIBLE_VIDEO_SECTIONS: list[tuple[str, tuple[int, int]]] = [
+INELIGIBLE_VIDEO_SECTIONS: list[tuple[str, tuple[int, int]]] = [
     # The line below is only an example, and should not match any actual file.
     ("EXAMPLE_VIDEO_FILE_BASENAME", (_mmss("10:00"), _mmss("10:30"))),
 ]
 
-
-# Used in two places -
-# (1) student_evaluator - If rerun, will ignore this clip.
-# (2) hiring_highlight_compiler - Will always ignore this clip.
-def is_clip_ineligible(filename: str, start: float, end: float) -> bool:
-    for fname_part, interval in _INELIGIBLE_VIDEO_SECTIONS:
-        if fname_part in filename:
-            # Exclude any intersection with ineligible interval.
-            if start < interval[1] and end > interval[0]:
-                logging.warning(f"Ineligible clip: {filename} - {start} to {end}")
-                return True
-    return False
+# Notes:
+# 1. Replacements will only happen at word boundaries.
+# 2. If multiple forms are to be replaced - e.g. capitalized, non-capitalized, all forms
+#    should be provided here.
+WORD_REPLACEMENTS: dict[str, str] = {
+    "wordtoreplace": "replacement",
+    "Wordtoreplace": "Replacement",
+}

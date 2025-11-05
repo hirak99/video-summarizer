@@ -5,6 +5,7 @@ from . import compile_options
 from . import highlights_persister
 from . import hiring_highlight_curator as hhc
 from . import video_graph_node_getter
+from .. import manual_overrides
 from .. import video_config
 from ...flow import process_node
 from ..utils import manual_labels_manager
@@ -51,7 +52,7 @@ class HiringMovieCompiler(process_node.ProcessNode):
                 "description": f"{index+1}.{segment.fingerprint} AI comment:{eval_sign} {segment.evaluation['comment']}",
                 "start_time": segment.evaluation["start"],
                 "end_time": segment.evaluation["end"],
-                "captions": segment.captions,
+                "captions": manual_overrides.word_replace(segment.captions),
             }
 
             # Following two blocks ensure -

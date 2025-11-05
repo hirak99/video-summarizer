@@ -9,8 +9,9 @@ import pydantic
 
 from . import compile_options
 from . import highlights_persister
+from .. import manual_overrides
 from .. import video_config
-from ...domain_specific import manual_overrides
+from ...domain_specific import manual_override_defs
 from ...flow import process_node
 from ..utils import file_conventions
 from ..utils import movie_compiler
@@ -201,7 +202,7 @@ class HighlightCurator(process_node.ProcessNode):
         highlights = [
             x
             for x in highlights
-            if x.fingerprint not in manual_overrides.BAD_HIRING_SEGMENTS
+            if x.fingerprint not in manual_override_defs.BAD_HIRING_SEGMENTS
         ]
 
         # Compiled movie name.

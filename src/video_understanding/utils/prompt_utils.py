@@ -1,7 +1,7 @@
 import logging
 
+from .. import manual_overrides
 from .. import video_config
-from ...domain_specific import manual_overrides
 from ..utils import interval_scanner
 from ..video_flow_nodes import role_based_captioner
 from ..video_flow_nodes import video_quality_profiler
