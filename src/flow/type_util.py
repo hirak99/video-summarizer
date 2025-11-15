@@ -1,6 +1,6 @@
 import typing
 from typing import Any, Union
-
+import enum
 
 def matches(obj, typ) -> bool:
     """
@@ -42,6 +42,13 @@ def matches(obj, typ) -> bool:
                 if key not in obj or not matches(obj[key], key_typ):
                     return False
             return True
+        # Enum support.
+        if isinstance(typ, type) and issubclass(typ, enum.Enum):
+            # Accept either an Enum member or a valid value for the Enum.
+            if isinstance(obj, typ):
+                return True
+            # Accept the value if it matches any Enum member's value.
+            return any(obj == member.value for member in typ)
         # Simple type, like int, str, etc.
         return isinstance(obj, typ)
     elif origin is Union:

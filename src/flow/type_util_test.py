@@ -1,4 +1,5 @@
 import unittest
+import enum
 
 from . import type_util
 
@@ -41,6 +42,23 @@ class TestProcessNode(unittest.TestCase):
         self.assertFalse(type_util.matches([1, "2"], tuple[int, int]))
         # The other way is not fine.
         self.assertFalse(type_util.matches((1, 2), list[int]))
+
+    def test_enum(self):
+        class Color(enum.Enum):
+            RED = 1
+            GREEN = 2
+            BLUE = 3
+
+        # Accepts Enum member.
+        self.assertTrue(type_util.matches(Color.RED, Color))
+        # Accepts Enum value.
+        self.assertTrue(type_util.matches(1, Color))
+        self.assertTrue(type_util.matches(2, Color))
+        # Rejects invalid value.
+        self.assertFalse(type_util.matches(4, Color))
+        # Rejects wrong type.
+        self.assertFalse(type_util.matches("RED", Color))
+        self.assertFalse(type_util.matches(None, Color))
 
     def test_typed_dict(self):
         x = {"a": 1, "b": "hello"}
