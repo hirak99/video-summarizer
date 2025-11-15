@@ -220,7 +220,11 @@ class AddedNode:
         self._time = time.time() - start
 
         # Value Changed or Always Update dependencies.
-        if self.result != old_result or self.update_deps == UpdateDeps.ALWAYS:
+        if (
+            self.result_timestamp is None  # First time update.
+            or self.result != old_result
+            or self.update_deps == UpdateDeps.ALWAYS
+        ):
             self.result_timestamp = datetime.datetime.now().timestamp()
         self._result_version = self.version
         self.on_result(self, prev_result != self.result)
