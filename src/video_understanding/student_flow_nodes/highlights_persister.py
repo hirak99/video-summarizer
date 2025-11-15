@@ -7,9 +7,9 @@ import pydantic
 
 from . import compile_options
 from . import video_graph_node_getter
-from .. import video_config
 from ...flow import process_node
 from ..utils import misc_utils
+from ..utils import video_file_search
 from ..video_flow_nodes import role_based_captioner
 from ..video_flow_nodes import video_flow_types
 
@@ -81,14 +81,18 @@ HighlightsListT = pydantic.RootModel[list[HighlightData]]
 
 
 @functools.lru_cache(maxsize=1)
-def _get_all_video_fnames(*, student: str | None, teacher: str | None) -> list[str]:
+def _get_all_video_fnames(
+    *, program: video_flow_types.ProgramType, student: str | None, teacher: str | None
+) -> list[str]:
     if student is None and teacher is None:
         raise ValueError("Either student or teacher must be specified.")
     students = [student] if student is not None else []
     teachers = [teacher] if teacher is not None else []
     if students and teachers:
         raise ValueError("Cannot have both students and teachers specified.")
-    return video_config.all_video_files(students=students, teachers=teachers)
+    return video_file_search.all_video_files(
+        program=program, students_list=students, teachers_list=teachers
+    )
 
 
 class EvalsPersister(process_node.ProcessNode):
@@ -112,13 +116,16 @@ class EvalsPersister(process_node.ProcessNode):
     @override
     def process(
         self,
+        program: video_flow_types.ProgramType,
         student: str | None,
         teacher: str | None,
         log_dir: str,
     ) -> str:
         eval_segments = HighlightsListT([])
 
-        for video_fname in _get_all_video_fnames(student=student, teacher=teacher):
+        for video_fname in _get_all_video_fnames(
+            program=program, student=student, teacher=teacher
+        ):
             video_nodes = video_graph_node_getter.get_video_graph_nodes(video_fname)
 
             captions_file = misc_utils.ensure_not_none(

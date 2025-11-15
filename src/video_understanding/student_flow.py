@@ -18,7 +18,11 @@ _OUTDIR = video_config.VIDEO_SUMMARIES_DIR / "CompiledHighlights"
 
 
 def _main(
-    students: list[str], teachers: list[str], force_rerun: bool, target_duration: float
+    program: video_flow_types.ProgramType,
+    students: list[str],
+    teachers: list[str],
+    force_rerun: bool,
+    target_duration: float,
 ):
     persist_dir = _OUTDIR / "logs" / compile_options.COMPILATION_TYPE.value
 
@@ -49,6 +53,7 @@ def _main(
         {
             # TODO: Fill evals_out from optional arg pointing to previous file to recreate movie from same highlights.
             "evals_out": evals_persisted_node,
+            "program": program,
             "student": student_const,
             "teacher": teacher_const,
             "out_dir": str(_OUTDIR),
@@ -125,6 +130,12 @@ if __name__ == "__main__":
         if member != video_flow_types.CompilationType.UNKNOWN
     ]
     parser.add_argument(
+        "--program",
+        type=video_flow_types.ProgramType,
+        required=True,
+        help=f"Program type.",
+    )
+    parser.add_argument(
         "--students",
         type=str,
         nargs="*",
@@ -178,6 +189,7 @@ if __name__ == "__main__":
         )
 
     _main(
+        program=args.program,
         students=args.students,
         teachers=args.teachers,
         force_rerun=args.force,
