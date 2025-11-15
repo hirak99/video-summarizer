@@ -111,7 +111,10 @@ class ProcessGraph:
             # No need to persist the entire graph for passive node, unless the value has changed.
             # It is important to save if the value changed, for batch process.
             # It will be saved otherwise when any other node changes.
-            if not node.passive or value_changed:
+            if (
+                value_changed
+                or node.update_deps == internal_graph_node.UpdateDeps.ALWAYS
+            ):
                 self._save_to(self._auto_save_path)
 
     def add_node(
@@ -120,8 +123,6 @@ class ProcessGraph:
         node_class: Type[process_node.ProcessNode],
         inputs: dict[str, internal_graph_node.AddedNode | Any],
         version: int | str = 0,
-        volatile: bool = False,
-        passive: bool = False,
         constructor_kwargs: dict[str, Any] | None = None,
         invalidate_before: float = 0,
         force: bool = False,
@@ -158,8 +159,6 @@ class ProcessGraph:
             node_class=node_class,
             inputs=inputs,
             version=version,
-            volatile=volatile,
-            passive=passive,
             constructor_args=constructor_kwargs or {},
             invalidate_before=invalidate_before,
             on_result=self._on_node_result,
@@ -196,13 +195,14 @@ class ProcessGraph:
         Returns:
             The node instance.
         """
-        return self.add_node(
+        node = self.add_node(
             id,
             _constant_node(name, type),
             {"value": None},
-            passive=True,
             default_arg_to_set="value",
         )
+        node.set_passive()
+        return node
 
     def reset(self):
         """Clear cached information."""

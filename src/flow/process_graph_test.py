@@ -378,8 +378,7 @@ class TestProcessGraph(unittest.TestCase):
     def test_volatile(self):
         graph = process_graph.ProcessGraph()
         node1 = graph.add_constant_node(1, name="test_constant", type=int)
-        node1.passive = False
-        node1.volatile = True
+        node1.set_volatile()
 
         node1.set_value(2)
         node2 = graph.add_node(2, SumInt, {"a": node1, "b": node1})

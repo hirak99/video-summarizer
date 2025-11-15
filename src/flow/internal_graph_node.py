@@ -4,6 +4,7 @@
 # If you are looking for abstraction to define a node, see process_node.py.
 import dataclasses
 import datetime
+import enum
 import gc
 import logging
 import time
@@ -27,6 +28,17 @@ class ManualOverrideFuncT(Protocol):
     def __call__(self, original_result: Any, **kwargs: Any) -> Any: ...
 
 
+class UpdateDeps(enum.Enum):
+    # Always update, if this node runs. This is the default.
+    # This always changes the timestamp when run, hence triggers the dependencies.
+    ALWAYS = enum.auto()
+    # Never update. E.g. for constants like file paths, which if moved you do not want
+    # to recompute everything.
+    NEVER = enum.auto()
+    # Update only if the value here has changed. E.g. for checksum of a file.
+    VALUE_CHANGED = enum.auto()
+
+
 @dataclasses.dataclass
 class AddedNode:
     """Returned by graph.add_node(). Do not instantiate manually."""
@@ -48,23 +60,6 @@ class AddedNode:
     # If True, skip node constructors, skip compute, and skip save.
     dry_run: bool
 
-    # Note:
-    # passive = always + dependencies never
-    # volatile = always + dependencies on my value change
-    # [normal] = on trigger + dependencies always
-    #
-    # Passive nodes do not trigger dependencies even if value changes.
-    #
-    # They are useful for maintenance constants such as file paths, since you may not
-    # want to redo extensive pipeline computation if you merely move your source files.
-    passive: bool
-
-    # Volatile nodes are always run. They trigger dependencies only if value changes.
-    #
-    # Unlike other nodes, the result timestamp is updated only if the result changes.
-    # Good for checksums, and triggering dependencies if source changes.
-    volatile: bool
-
     # Which arg will be set if .set() is called without arg name.
     default_arg_to_set: str | None
 
@@ -82,6 +77,23 @@ class AddedNode:
     # Lazy init this only if needed.
     # Prevents node to be created if existing data is loaded.
     _lazy_node: process_node.ProcessNode | None = None
+
+    # Run this node irrespective of parent nodes.
+    run_always: bool = False
+    # Update strategy for dependant nodes (if this node was run).
+    update_deps: UpdateDeps = UpdateDeps.ALWAYS
+
+    # Note:
+    # [normal] = not run_always + dependencies always
+    # passive = run_always + dependencies never, e.g. file names
+    # volatile = run_always + dependencies on value change, e.g. checksum nodes
+    def set_passive(self):
+        self.run_always = True
+        self.update_deps = UpdateDeps.NEVER
+
+    def set_volatile(self):
+        self.run_always = True
+        self.update_deps = UpdateDeps.VALUE_CHANGED
 
     def has_result(self) -> bool:
         return self.result_timestamp is not None
@@ -131,10 +143,6 @@ class AddedNode:
             },
         }
         assert isinstance(result["meta"], dict)
-        if self.volatile:
-            result["meta"]["volatile"] = True
-        if self.passive:
-            result["meta"]["passive"] = True
         if self._was_overridden_in_dependancy:
             result["meta"]["overriden"] = True
         result["version"] = self._result_version
@@ -210,13 +218,15 @@ class AddedNode:
         else:
             self.result = self._node.process(**kwargs)
         self._time = time.time() - start
-        if self.result != old_result or not self.volatile:
+
+        # Value Changed or Always Update dependencies.
+        if self.result != old_result or self.update_deps == UpdateDeps.ALWAYS:
             self.result_timestamp = datetime.datetime.now().timestamp()
         self._result_version = self.version
         self.on_result(self, prev_result != self.result)
 
     def _needs_update(self) -> bool:
-        if self.volatile or self.passive:
+        if self.run_always:
             return True
         if not self.has_result():
             logging.info(f"Needs update ({self.id}): {self.name} because no result")
@@ -238,7 +248,7 @@ class AddedNode:
             del input_name  # Unused
             if isinstance(input_val, AddedNode):
                 if (
-                    not input_val.passive
+                    input_val.update_deps != UpdateDeps.NEVER
                     and input_val.result_timestamp is not None
                     and input_val.result_timestamp > self.result_timestamp
                 ):
