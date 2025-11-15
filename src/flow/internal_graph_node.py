@@ -45,15 +45,25 @@ class AddedNode:
     # hook to do that. See doc on the type for usage suggestions.
     manual_override_func: ManualOverrideFuncT | None
 
-    # If True, will not initialize node constructors, will not compute, and will not save.
+    # If True, skip node constructors, skip compute, and skip save.
     dry_run: bool
 
-    # Passive nodes do not trigger update for dependencies even if value changes.
+    # Note:
+    # passive = always + dependencies never
+    # volatile = always + dependencies on my value change
+    # [normal] = on trigger + dependencies always
     #
-    # They are useful for maintenance constants such as file paths, since you
-    # may not want to redo extensive pipeline computation if you merely move
-    # your source files.
+    # Passive nodes do not trigger dependencies even if value changes.
+    #
+    # They are useful for maintenance constants such as file paths, since you may not
+    # want to redo extensive pipeline computation if you merely move your source files.
     passive: bool
+
+    # Volatile nodes are always run. They trigger dependencies only if value changes.
+    #
+    # Unlike other nodes, the result timestamp is updated only if the result changes.
+    # Good for checksums, and triggering dependencies if source changes.
+    volatile: bool
 
     # Which arg will be set if .set() is called without arg name.
     default_arg_to_set: str | None
@@ -121,6 +131,8 @@ class AddedNode:
             },
         }
         assert isinstance(result["meta"], dict)
+        if self.volatile:
+            result["meta"]["volatile"] = True
         if self.passive:
             result["meta"]["passive"] = True
         if self._was_overridden_in_dependancy:
@@ -192,17 +204,19 @@ class AddedNode:
         kwargs = self._filled_in_inputs
         start = time.time()
         prev_result = self.result
+        old_result = self.result
         if self.dry_run:
             self.result = None
         else:
             self.result = self._node.process(**kwargs)
         self._time = time.time() - start
-        self.result_timestamp = datetime.datetime.now().timestamp()
+        if self.result != old_result or not self.volatile:
+            self.result_timestamp = datetime.datetime.now().timestamp()
         self._result_version = self.version
         self.on_result(self, prev_result != self.result)
 
     def _needs_update(self) -> bool:
-        if self.passive:
+        if self.volatile or self.passive:
             return True
         if not self.has_result():
             logging.info(f"Needs update ({self.id}): {self.name} because no result")

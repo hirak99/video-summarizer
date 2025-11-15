@@ -325,8 +325,9 @@ class TestProcessGraph(unittest.TestCase):
                 fault_tolerant=False,  # On error, do not continue.
             )
 
-    def test_volatile(self):
+    def test_passive(self):
         graph = process_graph.ProcessGraph()
+        # Since constant nodes are passive, we can instantiate one for testing.
         node1 = graph.add_constant_node(1, name="test_constant", type=int)
         node1.set_value(2)
         node2 = graph.add_node(2, SumInt, {"a": node1, "b": node1})
@@ -344,8 +345,10 @@ class TestProcessGraph(unittest.TestCase):
             },
         )
 
+        # Change the passive node.
         node1.set_value(3)
         graph.run_upto([node2])
+        # Passive nodes do not trigger dependencies. Call count remains 1.
         self.assertEqual(sum_node2.process_call_count, 1)
         self.assertEqual(node2.result, 4)
         self.assertEqual(
@@ -358,7 +361,8 @@ class TestProcessGraph(unittest.TestCase):
             },
         )
 
-        # However if dependant node is recomputed for any other reason, it will use the new value of volatile node.
+        # However if dependant node is recomputed for any other reason, it will use the
+        # new value of volatile node.
         node2.version = 1
         graph.run_upto([node2])
         self.assertEqual(sum_node2.process_call_count, 2)
@@ -370,6 +374,34 @@ class TestProcessGraph(unittest.TestCase):
                 2: {"name": "SumInt", "output": 6, "version": 1},
             },
         )
+
+    def test_volatile(self):
+        graph = process_graph.ProcessGraph()
+        node1 = graph.add_constant_node(1, name="test_constant", type=int)
+        node1.passive = False
+        node1.volatile = True
+
+        node1.set_value(2)
+        node2 = graph.add_node(2, SumInt, {"a": node1, "b": node1})
+        sum_node2: SumInt = node2._node  # pyright: ignore
+
+        graph.run_upto([node2])
+
+        # Initial call.
+        self.assertEqual(node2.result, 4)
+        self.assertEqual(sum_node2.process_call_count, 1)
+
+        # If value does not change, dependent nodes are not triggered.
+        node1.set_value(2)
+        graph.run_upto([node2])
+        self.assertEqual(sum_node2.process_call_count, 1)
+        self.assertEqual(node2.result, 4)
+
+        # Changing value triggers dependent nodes as seen in the call count.
+        node1.set_value(3)
+        graph.run_upto([node2])
+        self.assertEqual(sum_node2.process_call_count, 2)
+        self.assertEqual(node2.result, 6)
 
 
 if __name__ == "__main__":
