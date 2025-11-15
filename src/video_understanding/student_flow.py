@@ -6,7 +6,6 @@ import os
 
 from . import video_config
 from ..flow import process_graph
-from .student_flow_nodes import compile_options
 from .student_flow_nodes import eval_template_maker
 from .student_flow_nodes import highlights_persister
 from .student_flow_nodes import hiring_highlight_curator as hhc
@@ -19,12 +18,29 @@ _OUTDIR = video_config.VIDEO_SUMMARIES_DIR / "CompiledHighlights"
 
 def _main(
     program: video_flow_types.ProgramType,
+    movie_type: video_flow_types.CompilationType,
     students: list[str],
     teachers: list[str],
     force_rerun: bool,
     target_duration: float,
 ):
-    persist_dir = _OUTDIR / "logs" / compile_options.COMPILATION_TYPE.value
+    if (
+        movie_type
+        in [
+            video_flow_types.CompilationType.STUDENT_HIRING,
+            video_flow_types.CompilationType.STUDENT_RESUME,
+        ]
+        and args.teachers
+    ) or (
+        movie_type
+        in [
+            video_flow_types.CompilationType.TEACHER_HIRING,
+        ]
+        and args.students
+    ):
+        raise ValueError(f"Invalid teachers/students specified for {movie_type}")
+
+    persist_dir = _OUTDIR / "logs" / movie_type.value
 
     # Next Node ID: 6
     graph = process_graph.ProcessGraph()
@@ -37,6 +53,8 @@ def _main(
         5,
         highlights_persister.EvalsPersister,
         {
+            "program": program,
+            "movie_type": movie_type,
             "student": student_const,
             "teacher": teacher_const,
             "log_dir": str(persist_dir),
@@ -52,8 +70,9 @@ def _main(
         hhc.HighlightCurator,
         {
             # TODO: Fill evals_out from optional arg pointing to previous file to recreate movie from same highlights.
-            "evals_out": evals_persisted_node,
             "program": program,
+            "movie_type": movie_type,
+            "evals_out": evals_persisted_node,
             "student": student_const,
             "teacher": teacher_const,
             "out_dir": str(_OUTDIR),
@@ -76,6 +95,7 @@ def _main(
         3,
         hiring_movie_compiler.HiringMovieCompiler,
         {
+            "movie_type": movie_type,
             "highlights_log_file": highlight_curate_node,
         },
     )
@@ -99,7 +119,10 @@ def _main(
         if result_timestamp is not None:
             source_timestamp = (
                 highlights_persister.EvalsPersister.check_source_timestamp(
-                    student=student, teacher=teacher
+                    program=program,
+                    movie_type=movie_type,
+                    student=student,
+                    teacher=teacher,
                 )
             )
             logging.info(f"{source_timestamp=}")
@@ -151,7 +174,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--movie-type",
-        type=str,
+        type=video_flow_types.CompilationType,
         required=True,
         help=f"Type of movie compilation to perform. Can be one of: {valid_types}.",
     )
@@ -169,27 +192,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     logging_utils.setup_logging()
-    compile_options.set_compilation_type(args.movie_type)
-    if (
-        compile_options.COMPILATION_TYPE
-        in [
-            video_flow_types.CompilationType.STUDENT_HIRING,
-            video_flow_types.CompilationType.STUDENT_RESUME,
-        ]
-        and args.teachers
-    ) or (
-        compile_options.COMPILATION_TYPE
-        in [
-            video_flow_types.CompilationType.TEACHER_HIRING,
-        ]
-        and args.students
-    ):
-        raise ValueError(
-            f"Invalid teachers/students specified for {compile_options.COMPILATION_TYPE}"
-        )
 
     _main(
         program=args.program,
+        movie_type=args.movie_type,
         students=args.students,
         teachers=args.teachers,
         force_rerun=args.force,

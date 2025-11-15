@@ -194,7 +194,7 @@ class VideoFlowGraph:
         # We are not yet generating teacher highlights.
         del self.highlights_teacher_hiring
 
-        self._highlights_ftp = graph.add_node(
+        self.highlights_ftp = graph.add_node(
             20,
             highlights_selector.HighlightsSelector,
             {
@@ -287,7 +287,7 @@ class VideoFlowGraph:
         final_nodes = self._final_nodes
         match program:
             case video_flow_types.ProgramType.FTP:
-                final_nodes.append(self._highlights_ftp)
+                final_nodes.append(self.highlights_ftp)
             case video_flow_types.ProgramType.PMA:
                 final_nodes.append(self.highlights_student_hiring)
                 final_nodes.append(self.highlights_student_resume)

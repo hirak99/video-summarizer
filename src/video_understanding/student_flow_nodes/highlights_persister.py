@@ -5,7 +5,6 @@ import os
 
 import pydantic
 
-from . import compile_options
 from . import video_graph_node_getter
 from ...flow import process_node
 from ..utils import misc_utils
@@ -99,12 +98,21 @@ class EvalsPersister(process_node.ProcessNode):
 
     @classmethod
     def check_source_timestamp(
-        cls, *, student: str | None, teacher: str | None
+        cls,
+        program: video_flow_types.ProgramType,
+        movie_type: video_flow_types.CompilationType,
+        *,
+        student: str | None,
+        teacher: str | None,
     ) -> float:
         """Ensures all highlights exists, and returns latest timestamp."""
         latest_timestamp = 0.0
-        for video_fname in _get_all_video_fnames(student=student, teacher=teacher):
-            video_nodes = video_graph_node_getter.get_video_graph_nodes(video_fname)
+        for video_fname in _get_all_video_fnames(
+            program=program, student=student, teacher=teacher
+        ):
+            video_nodes = video_graph_node_getter.get_video_graph_nodes(
+                movie_type=movie_type, video_fname=video_fname
+            )
             highlights_node = video_nodes.current_highlights_node
             result_timestamp = misc_utils.ensure_not_none(
                 highlights_node.result_timestamp,
@@ -117,6 +125,7 @@ class EvalsPersister(process_node.ProcessNode):
     def process(
         self,
         program: video_flow_types.ProgramType,
+        movie_type: video_flow_types.CompilationType,
         student: str | None,
         teacher: str | None,
         log_dir: str,
@@ -126,7 +135,9 @@ class EvalsPersister(process_node.ProcessNode):
         for video_fname in _get_all_video_fnames(
             program=program, student=student, teacher=teacher
         ):
-            video_nodes = video_graph_node_getter.get_video_graph_nodes(video_fname)
+            video_nodes = video_graph_node_getter.get_video_graph_nodes(
+                movie_type=movie_type, video_fname=video_fname
+            )
 
             captions_file = misc_utils.ensure_not_none(
                 video_nodes.graph.role_based_caption_node.result,
@@ -156,7 +167,7 @@ class EvalsPersister(process_node.ProcessNode):
                     )
 
         fingerprint = misc_utils.fingerprint(eval_segments.model_dump_json())
-        out_file_basename = f"segments_{student or teacher}_{compile_options.COMPILATION_TYPE.value}_{fingerprint}.json"
+        out_file_basename = f"segments_{student or teacher}_{fingerprint}.json"
         out_fname = os.path.join(log_dir, out_file_basename)
 
         with open(out_fname, "w") as f:

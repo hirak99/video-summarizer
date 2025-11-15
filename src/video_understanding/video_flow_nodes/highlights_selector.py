@@ -128,14 +128,22 @@ class HighlightsSelector(process_node.ProcessNode):
         )
 
         for response in response_list:
-            if compilation_type == video_flow_types.CompilationType.STUDENT_RESUME:
-                # Check that "example_of" is not pre-populated.
+            if compilation_type in {
+                video_flow_types.CompilationType.STUDENT_RESUME,
+                video_flow_types.CompilationType.FTP_HIGHLIGHTS,
+            }:
+                # Check that "example_of" is not populated.
                 if "example_of" in response:
+                    raise ValueError(f"{compilation_type=} but has 'example_of'.")
+                # Mark "example_of" as "strength" for STUDENT_RESUME.
+                if compilation_type == video_flow_types.CompilationType.STUDENT_RESUME:
+                    response["example_of"] = "strength"
+            else:
+                # Check that "example_of" is populated.
+                if "example_of" not in response:
                     raise ValueError(
-                        "Resume compilation should not have 'example_of' pre-populated."
+                        f"{compilation_type=} but 'example_of' is not populated."
                     )
-                # "example_of" is "strength" in this case.
-                response["example_of"] = "strength"
             # Confirm that responses follow the correct format.
             # TODO: This should ideally be moved to a prompt transformer, so that automatic retry can happen.
             video_flow_types.HighlightsT(**response)

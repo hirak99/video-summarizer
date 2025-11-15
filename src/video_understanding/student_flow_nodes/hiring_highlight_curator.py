@@ -7,7 +7,6 @@ import os
 
 import pydantic
 
-from . import compile_options
 from . import highlights_persister
 from .. import manual_overrides
 from .. import video_config
@@ -15,6 +14,7 @@ from ...domain_specific import manual_override_defs
 from ...flow import process_node
 from ..utils import file_conventions
 from ..utils import movie_compiler
+from ..video_flow_nodes import video_flow_types
 
 from typing import override
 
@@ -174,6 +174,8 @@ class HighlightCurator(process_node.ProcessNode):
     @override
     def process(
         self,
+        program: video_flow_types.ProgramType,
+        movie_type: video_flow_types.CompilationType,
         evals_out: str,
         student: str | None,
         teacher: str | None,
@@ -206,9 +208,11 @@ class HighlightCurator(process_node.ProcessNode):
         ]
 
         # Compiled movie name.
-        movie_type_str = compile_options.COMPILATION_TYPE.value
         time_str = datetime.datetime.now().strftime("%Y%m%d%H%M")
-        out_file_basename = f"{student or teacher}_{movie_type_str}_v{video_config.VERSION}_{evals_fingerprint}_{time_str}"
+        if student and teacher:
+            raise ValueError(f"Both {student=} and {teacher=} are present.")
+        out_file_basename = f"{program.value}_{student or teacher}_{movie_type.value}_v{video_config.VERSION}_{evals_fingerprint}_{time_str}"
+
         os.makedirs(out_dir, exist_ok=True)
         movie_name = os.path.join(out_dir, f"{out_file_basename}.mp4")
 

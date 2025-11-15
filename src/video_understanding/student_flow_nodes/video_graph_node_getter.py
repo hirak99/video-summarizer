@@ -1,34 +1,38 @@
 import functools
 
-from . import compile_options
 from .. import video_flow_graph
 from ...flow import internal_graph_node
+from ..video_flow_nodes import video_flow_types
 
 
 class _VideoGraphNodes:
 
-    def __init__(self, video_fname: str):
+    def __init__(self, movie_type: video_flow_types.CompilationType, video_fname: str):
+        self._movie_type = movie_type
+
         self.graph = video_flow_graph.VideoFlowGraph(makeviz=False, dry_run=True)
         self.graph.persist_graph_for(video_fname)
 
     @property
     def current_highlights_node(self) -> internal_graph_node.AddedNode:
 
-        match compile_options.COMPILATION_TYPE:
-            case compile_options.COMPILATION_TYPE.STUDENT_HIRING:
+        match self._movie_type:
+            case self._movie_type.STUDENT_HIRING:
                 highlights_node = self.graph.highlights_student_hiring
-            case compile_options.COMPILATION_TYPE.STUDENT_RESUME:
+            case self._movie_type.STUDENT_RESUME:
                 highlights_node = self.graph.highlights_student_resume
-            case compile_options.COMPILATION_TYPE.TEACHER_HIRING:
+            case self._movie_type.TEACHER_HIRING:
                 highlights_node = self.graph.highlights_teacher_hiring
+            case self._movie_type.FTP_HIGHLIGHTS:
+                highlights_node = self.graph.highlights_ftp
             case _:
-                raise ValueError(
-                    f"Unknown compilation type: {compile_options.COMPILATION_TYPE}"
-                )
+                raise ValueError(f"Unknown compilation type: {self._movie_type}")
         return highlights_node
 
 
 # This is thread-safe. The maxsize (roughly) should be the number of threads needed.
 @functools.lru_cache(maxsize=10)
-def get_video_graph_nodes(video_fname: str) -> _VideoGraphNodes:
-    return _VideoGraphNodes(video_fname)
+def get_video_graph_nodes(
+    movie_type: video_flow_types.CompilationType, video_fname: str
+) -> _VideoGraphNodes:
+    return _VideoGraphNodes(movie_type=movie_type, video_fname=video_fname)

@@ -10,6 +10,8 @@ from .. import video_config
 from ...flow import process_node
 from ..utils import manual_labels_manager
 from ..utils import movie_compiler
+from ..video_flow_graph import video_flow_types
+
 
 from typing import override
 
@@ -19,21 +21,30 @@ _EPSILON = 1e-3
 class HiringMovieCompiler(process_node.ProcessNode):
 
     @override
-    def process(self, highlights_log_file: str) -> str:
+    def process(
+        self, movie_type: video_flow_types.CompilationType, highlights_log_file: str
+    ) -> str:
         with open(highlights_log_file, "r") as file:
             highlights_log = hhc.HighlightsLog.model_validate_json(file.read())
 
         self._compile_movie(
-            highlights_log.highlights, out_file=highlights_log.compiled_movie
+            movie_type=movie_type,
+            highlights=highlights_log.highlights,
+            out_file=highlights_log.compiled_movie,
         )
 
         return highlights_log.compiled_movie
 
     def _compile_movie(
-        self, highlights: list[highlights_persister.HighlightData], out_file: str
+        self,
+        movie_type: video_flow_types.CompilationType,
+        highlights: list[highlights_persister.HighlightData],
+        out_file: str,
     ) -> None:
         """Compile the chosen highlights into a movie."""
-        compiler = movie_compiler.MovieCompiler(compile_options.get_movie_options())
+        compiler = movie_compiler.MovieCompiler(
+            compile_options.get_movie_options(movie_type)
+        )
 
         for index, segment in enumerate(highlights):
             logging.info(f"{index + 1} of {len(highlights)}: {segment.movie}")
@@ -47,7 +58,11 @@ class HiringMovieCompiler(process_node.ProcessNode):
                 + f" - {to_mmss(segment.evaluation['end'])}]"
             )
 
-            eval_sign = " +" if segment.evaluation["example_of"] == "strength" else ""
+            eval_sign = ""
+            if "example_of" in segment.evaluation:
+                if segment.evaluation["example_of"] == "strength":
+                    eval_sign = " +"
+
             highlight: movie_compiler.HighlightsT = {
                 "description": f"{index+1}.{segment.fingerprint} AI comment:{eval_sign} {segment.evaluation['comment']}",
                 "start_time": segment.evaluation["start"],
@@ -98,7 +113,9 @@ class HiringMovieCompiler(process_node.ProcessNode):
                         logging.info("Lowering fade in time.")
                         fade_in_time = 0.0
 
-            video_nodes = video_graph_node_getter.get_video_graph_nodes(segment.movie)
+            video_nodes = video_graph_node_getter.get_video_graph_nodes(
+                movie_type=movie_type, video_fname=segment.movie
+            )
             ocr_file = video_nodes.graph.ocr_detect_node.result
 
             annotation_blur = manual_labels_manager.AnnotationBlur(segment.movie)
