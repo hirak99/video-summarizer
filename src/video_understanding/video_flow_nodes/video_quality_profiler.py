@@ -88,7 +88,12 @@ class _ChoppinessDetector:
 
 class VideoQualityProfiler(process_node.ProcessNode):
     @override
-    def process(self, source_file: str, out_file_stem: str) -> str:
+    def process(
+        self,
+        source_file: str,
+        checksum: dict[str, str],  # Only for graph dependency.
+        out_file_stem: str,
+    ) -> str:
         clip = moviepy.VideoFileClip(source_file)
 
         choppiness = _ChoppinessDetector()

@@ -65,7 +65,12 @@ class VoiceSeparator(process_node.ProcessNode):
         self._pipeline.to(torch.device("cuda"))
 
     @override
-    def process(self, source_file: str, out_file_stem: str) -> str:
+    def process(
+        self,
+        source_file: str,
+        out_file_stem: str,
+        checksum: dict[str, str],  # Only for graph dependency.
+    ) -> str:
         out_file = out_file_stem + ".diarized.json"
         logging.info(f"Diatrizing to {out_file}")
         with get_wav(source_file) as source_wav:

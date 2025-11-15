@@ -85,7 +85,12 @@ class CustomYoloDetector(process_node.ProcessNode):
         self._detector = yolo_window_detector.YoloWindowDetector()
 
     @override
-    def process(self, source_file: str, out_file_stem: str) -> str:
+    def process(
+        self,
+        source_file: str,
+        checksum: dict[str, str],  # Only for graph dependency.
+        out_file_stem: str,
+    ) -> str:
         clip = moviepy.VideoFileClip(source_file)
 
         detections = YoloDetections()

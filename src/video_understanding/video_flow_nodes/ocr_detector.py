@@ -97,7 +97,12 @@ class OcrDetector(process_node.ProcessNode):
             i += 1
 
     @override
-    def process(self, source_file: str, out_file_stem: str) -> str:
+    def process(
+        self,
+        source_file: str,
+        checksum: dict[str, str],  # Only for graph dependency.
+        out_file_stem: str,
+    ) -> str:
         movie = moviepy.VideoFileClip(source_file)
 
         timed_detections = self._detect_time_series(movie)

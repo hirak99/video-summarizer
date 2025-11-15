@@ -9,6 +9,7 @@ from ..flow import internal_graph_node
 from ..flow import process_graph
 from .video_flow_nodes import caption_visualizer
 from .video_flow_nodes import custom_yolo_detector
+from .video_flow_nodes import file_checksummer
 from .video_flow_nodes import highlights_selector
 from .video_flow_nodes import ocr_detector
 from .video_flow_nodes import role_based_captioner
@@ -29,17 +30,27 @@ class VideoFlowGraph:
         graph = process_graph.ProcessGraph(dry_run=dry_run)
 
         # Don't re-use purged node ids.
-        # Next Id: 21
+        # Next Id: 22
         # Id(s) deprecated: 3, 11, 16.
         self._source_file_const = graph.add_constant_node(
             0, name="Source Video", type=str
         )
         self._out_stem_const = graph.add_constant_node(1, name="Out Stem", type=str)
+
+        self._checksum_node = graph.add_node(
+            21,
+            file_checksummer.FileChecksummer,
+            {"source_file": self._source_file_const},
+        )
+        # Recompute every time, but trigger deps only on value change.
+        self._checksum_node.set_volatile()
+
         video_quality_profile_node = graph.add_node(
             17,
             video_quality_profiler.VideoQualityProfiler,
             {
                 "source_file": self._source_file_const,
+                "checksum": self._checksum_node,
                 "out_file_stem": self._out_stem_const,
             },
             version=2,
@@ -49,6 +60,7 @@ class VideoFlowGraph:
             custom_yolo_detector.CustomYoloDetector,
             {
                 "source_file": self._source_file_const,
+                "checksum": self._checksum_node,
                 "out_file_stem": self._out_stem_const,
             },
             version=0,
@@ -59,6 +71,7 @@ class VideoFlowGraph:
             transcriber.WhisperTranscribe,
             {
                 "source_file": self._source_file_const,
+                "checksum": self._checksum_node,
                 "out_file_stem": self._out_stem_const,
             },
             invalidate_before=1753438637,
@@ -68,6 +81,7 @@ class VideoFlowGraph:
             voice_separator.VoiceSeparator,
             {
                 "source_file": self._source_file_const,
+                "checksum": self._checksum_node,
                 "out_file_stem": self._out_stem_const,
             },
             invalidate_before=1751002018,
@@ -199,6 +213,7 @@ class VideoFlowGraph:
             ocr_detector.OcrDetector,
             {
                 "source_file": self._source_file_const,
+                "checksum": self._checksum_node,
                 "out_file_stem": self._out_stem_const,
             },
             invalidate_before=1749315690,
