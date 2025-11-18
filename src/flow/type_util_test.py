@@ -1,5 +1,5 @@
-import unittest
 import enum
+import unittest
 
 from . import type_util
 

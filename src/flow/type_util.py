@@ -1,6 +1,8 @@
+import enum
+
 import typing
 from typing import Any, Union
-import enum
+
 
 def matches(obj, typ) -> bool:
     """
