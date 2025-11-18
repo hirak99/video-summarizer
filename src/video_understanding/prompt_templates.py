@@ -12,11 +12,13 @@ ROLE_IDENTIFIER_PROMPT_TEMPLATE = [
     "{caption_text}",
     "---",
     "The session is on '{task_description}'.",
-    "Analyze all the lines above, and determine who is the teacher and who is the student.",
+    "Analyze all the lines above, and determine who is the teacher and who is or are the student(s).",
     "The diarization may not be 100% perfect, there can be very few lines incorrectly captioned.",
     "Restrict your response to only one line of json, with the follwing format:",
-    "" '{{"Person A": role, "Person B": role}}',
-    "" 'The `role` can be either "Teacher" or "Student".',
+    # Simply a JSON with one entry per speaker -
+    #  '{"Person A": ROLE, "Person B": ROLE, ...}'
+    " {role_dict_example}",
+    'The `ROLE` can be either "Teacher" or "Student".',
 ]
 
 STUDENT_HIRING_PROMPT_VERSION = 5  # Increase if you change the prompt.

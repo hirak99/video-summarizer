@@ -10,13 +10,11 @@ import torch
 
 from .. import video_config
 from ...flow import process_node
+from ..utils import file_conventions
 
 from typing import override
 
 _HF_AUTH_ENV = "HUGGING_FACE_AUTH"
-
-# Since we know there are two speakers, we can use this info to guide diarization.
-_NUM_SPEAKERS = 2
 
 
 # This is type of saved data.
@@ -73,16 +71,32 @@ class VoiceSeparator(process_node.ProcessNode):
     ) -> str:
         out_file = out_file_stem + ".diarized.json"
         logging.info(f"Diatrizing to {out_file}")
+
+        max_speakers = 2
+        file_parts = file_conventions.FileNameComponents.from_pathname(source_file)
+        if file_parts.student.startswith("G"):
+            # Group of students.
+            max_speakers = 3
+
         with get_wav(source_file) as source_wav:
-            diarization = self._pipeline(source_wav, max_speakers=_NUM_SPEAKERS)
+            diarization = self._pipeline(source_wav, max_speakers=max_speakers)
+
         result = []
+        seen_speakers: set[str] = set()
         for turn, _, speaker in diarization.itertracks(yield_label=True):
+            seen_speakers.add(speaker)
             result.append(
                 {
                     "interval": (turn.start, turn.end),
                     "speaker": speaker,
                 }
             )
+
+        logging.info(f"Seen speakers: {seen_speakers} with {max_speakers=}.")
+
+        # Validate.
+        all(_Diarization.model_validate(x) for x in result)
+
         with open(out_file, "w") as f:
             json.dump(result, f)
         return out_file

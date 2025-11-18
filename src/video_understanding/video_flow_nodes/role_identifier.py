@@ -18,7 +18,11 @@ def _caption_to_str(captions: list[dict[str, Any]]) -> tuple[str, dict[str, str]
 
     speaker_aliases: dict[str, str] = {}
     # Diarization produces "SPEAKER_00", "SPEAKER_01", etc.
-    # Convert "SPEAKER_00" to "Person A" and so on, to help the LLM.
+    # Example:
+    # {
+    #   "SPEAKER_00": "Person A",
+    #   "SPEAKER_01": "Person B",
+    # }
 
     for i, speaker in enumerate(word_caption_utils.all_speakers(captions)):
         speaker_aliases[speaker] = f"Person {chr(i + ord('A'))}"
@@ -35,26 +39,30 @@ def _caption_to_str(captions: list[dict[str, Any]]) -> tuple[str, dict[str, str]
 
 
 def _result_parser(
-    response: dict[str, str], *, speaker_aliases: dict[str, str]
+    response: dict[str, str], *, speaker_names: list[str]
 ) -> dict[str, str] | None:
+    """Converts LLM response.
+
+    Args:
+        response: Example {"Person A": "Student", "Person B": "Teacher"}.
+        speaker_names: All known speaker names, e.g. "Person A", "Person B".
+    Returns:
+        Same as response, but drops unknown keys (e.g. "Person C").
+    """
     # Valid keys in LLM response. E.g. "Person A".
-    valid_keys = speaker_aliases.values()
-    for valid_key in valid_keys:
-        if valid_key not in response:
-            logging.warning(f"Response is missing key: {valid_key}")
-            # The LLM can produce ..., "Person B": "Teacher" even when there is
-            # no Person B and only the teacher spoke. So we allow non-existent
-            # keys, and ignore them.
-            continue
+    for speaker_name in speaker_names:
+        if speaker_name not in response:
+            logging.warning(f"Response is missing speaker: {speaker_name}")
+            return None
         # Capitalize the values to ensure consistency.
-        response[valid_key] = response[valid_key].strip().capitalize()
-        if response[valid_key] not in ["Teacher", "Student"]:
+        response[speaker_name] = response[speaker_name].strip().capitalize()
+        if response[speaker_name] not in ["Teacher", "Student"]:
             logging.error(
-                f"Response value for {valid_key} is not valid: {response[valid_key]}"
+                f"Response value for {speaker_name} is not valid: {response[speaker_name]}"
             )
             return None
     # Remove any keys that are not in the valid keys.
-    result = {k: v for k, v in response.items() if k in valid_keys}
+    result = {k: v for k, v in response.items() if k in speaker_names}
     if not result:
         logging.error("No valid keys (e.g. 'Person A') found in the LLM response")
         return None
@@ -81,11 +89,19 @@ class RoleIdentifier(process_node.ProcessNode):
 
         caption_text, speaker_aliases = _caption_to_str(data)
 
+        # Unalias the speaker names to the original names.
+        # E.g. {"Person A": "SPEAKER_00", ...}.
+        speaker_unalias = {v: k for k, v in speaker_aliases.items()}
+
+        role_dict_example = json.dumps({k: "ROLE" for k in speaker_unalias.keys()})
+        logging.info(f"{role_dict_example=}")
+
         prompt_lines = templater.fill(
             prompt_templates.ROLE_IDENTIFIER_PROMPT_TEMPLATE,
             {
                 "caption_text": caption_text,
                 "task_description": file_conventions.filename_to_task(source_file),
+                "role_dict_example": role_dict_example,
             },
         )
         response = self._llm_instance.do_prompt_and_parse(
@@ -93,15 +109,15 @@ class RoleIdentifier(process_node.ProcessNode):
             transformers=[
                 llm_utils.remove_thinking,
                 llm_utils.parse_as_json,
-                functools.partial(_result_parser, speaker_aliases=speaker_aliases),
+                functools.partial(
+                    _result_parser, speaker_names=list(speaker_unalias.keys())
+                ),
             ],
             max_tokens=8192,
             log_file=f"{out_file_stem}.role_assigner_llm_debug.txt",
             log_additional_info="\n".join([f"Speaker Aliases: {speaker_aliases!r}"]),
         )
         logging.info(f"Parsed LLM Response: {response!r}")
-        # Unalias the speaker names to the original names.
-        speaker_unalias = {v: k for k, v in speaker_aliases.items()}
         response = {speaker_unalias[k]: v for k, v in response.items()}
         logging.info(f"Unaliased speaker names: {response!r}")
         return response

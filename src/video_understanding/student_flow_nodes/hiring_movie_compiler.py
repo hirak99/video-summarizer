@@ -12,7 +12,6 @@ from ..utils import manual_labels_manager
 from ..utils import movie_compiler
 from ..video_flow_graph import video_flow_types
 
-
 from typing import override
 
 _EPSILON = 1e-3

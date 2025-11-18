@@ -23,7 +23,7 @@ def setup_logging(level=logging.INFO, log_dir: str | None = "_runlog") -> None:
 
     # Define formatter (used for both console and file)
     formatter = logging.Formatter(
-        fmt="%(asctime)s - %(levelname)s - %(filename)s - %(message)s",
+        fmt="%(asctime)s %(levelname)s: [%(filename)s:%(lineno)d] %(message)s",
         datefmt="%H:%M:%S",
     )
 

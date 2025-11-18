@@ -248,9 +248,15 @@ class AddedNode:
             return True
 
         # Update if any of the dependencies had a recent update.
+        logging.info(
+            f"Checking dependencies for {self.id}: {self.name}, {self.result_timestamp}"
+        )
         for input_name, input_val in self.inputs.items():
             del input_name  # Unused
             if isinstance(input_val, AddedNode):
+                logging.info(
+                    f"  {input_val.id}: {input_val.name}, {input_val.result_timestamp}, {input_val.update_deps}"
+                )
                 if (
                     input_val.update_deps != UpdateDeps.NEVER
                     and input_val.result_timestamp is not None

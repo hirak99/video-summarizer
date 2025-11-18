@@ -1,3 +1,4 @@
+import logging
 import os
 import pathlib
 import re
@@ -50,10 +51,14 @@ def all_video_files(
             if not (filename.endswith(".mkv") or filename.endswith(".mp4")):
                 continue
 
-            components = file_conventions.FileNameComponents.from_pathname(
-                os.path.join(root, filename)
-            )
-            if not components:
+            file_path = os.path.join(root, filename)
+            try:
+                components = file_conventions.FileNameComponents.from_pathname(
+                    os.path.join(root, filename)
+                )
+            except ValueError as e:
+                rel_path = os.path.relpath(file_path, video_config.VIDEOS_DIR)
+                logging.warning(f"Error parsing filename {rel_path}: {e}")
                 continue
 
             if regex and not re.search(regex, filename):

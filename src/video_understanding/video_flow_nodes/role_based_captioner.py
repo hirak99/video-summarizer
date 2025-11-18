@@ -28,6 +28,7 @@ class RoleBasedCaptionsNode(process_node.ProcessNode):
         with open(word_captions_file) as f:
             diarized_captions = json.load(f)
 
+        logging.info(f"{identified_roles=}")
         captions = word_caption_utils.merge_word_captions(
             diarized_captions,
             speaker_aliases=identified_roles,

@@ -4,11 +4,7 @@ import logging
 import os
 import re
 
-import regex
-
-from .. import video_config
-
-_FILE_REGEX_TO_TASK = {
+_SESSION_RE_CONTENT_TO_TASK = {
     "EKG": "pediatric EKG training",
     "Hearing": "pediatric Hearing Test training",
     "(color vision|Color Screening)": "pediatric Color Vision Tess training",
@@ -53,17 +49,16 @@ class FileNameComponents:
     session: str
 
     @classmethod
-    def from_pathname(cls, pathname: str) -> "FileNameComponents | None":
-        file_re = r"(?P<date>\d{4}-\d{2}-\d{2})_(?P<session>.+)_(?P<uid1>[ESP][0-9]+?)-(?P<uid2>[ESP][0-9]+?)\.(?P<ext>[a-zA-Z0-9]+)"
+    def from_pathname(cls, pathname: str) -> "FileNameComponents":
+        file_re = r"(?P<date>\d{4}-\d{2}-\d{2})_(?P<session>.+)_(?P<uid1>[ESPG][0-9]+?)-(?P<uid2>[ESPG][0-9]+?)\.(?P<ext>[a-zA-Z0-9]+)"
         match = re.fullmatch(file_re, os.path.basename(pathname))
-        relative_name = os.path.relpath(pathname, video_config.VIDEOS_DIR)  # For messages.
+
         if not match:
-            logging.warning(f"Invalid file name: {relative_name}")
-            return None
+            raise ValueError(f"Invalid file name.")
+
         parent_basename = os.path.basename(os.path.dirname(pathname))
         if parent_basename != match.group("uid2"):
-            logging.warning(f"Parent dir doesn't match student name: {relative_name}")
-            return None
+            raise ValueError(f"Parent dir doesn't match student name.")
 
         return cls(
             date=match.group("date"),
@@ -74,29 +69,14 @@ class FileNameComponents:
 
 
 def filename_to_task(file_path: str) -> str:
-    basename = os.path.basename(file_path)
-    for regex_str, description in _FILE_REGEX_TO_TASK.items():
-        if regex_str in basename:
-            return description
+    session_name = FileNameComponents.from_pathname(file_path).session
 
-    # Fall back to heuristically deducing the metadata.
-    logging.info(f"No metadata found for file: {file_path}")
-    m = regex.fullmatch(
-        # It's not always E000x-S00xx.
-        # TODO: Add test for each of the cases below.
-        # Examples:
-        # 2025-01-01_weight_E000x_ S000x.mkv
-        # 01-01-25_hearing_E000x-S000x.mkv
-        # 2025-01-30 13-20-12_PPE_E000x-S000x.mkv
-        r"\d{2,4}-\d{2}-\d{2}[ \d]*_(?P<name>.*)_E0.*?S0.*?\.(mp4|mkv)",
-        basename,
-    )
-    if not m:
-        raise ValueError(
-            f"Could not also deduce metadata from file name: {file_path!r}"
-        )
-    name = m["name"]
-    return f"pediatric {name} training"
+    for keyword, tasc_description in _SESSION_RE_CONTENT_TO_TASK.items():
+        if re.search(keyword, session_name, re.IGNORECASE):
+            return tasc_description
+
+    # Fall back to heuristically create a description.
+    return f"pediatric {session_name} training"
 
 
 @functools.lru_cache(maxsize=2048)

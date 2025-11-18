@@ -45,9 +45,11 @@ def fill(template: list[str], prompt_args: dict[str, str]) -> list[str]:
     for full_line in template:
         line_splitted = _split_double_brace(full_line)
         for index in range(0, len(line_splitted), 2):
-            if isinstance(line_splitted[index], _DoubleBrace):
-                continue
             line = line_splitted[index]
+            if isinstance(line, _DoubleBrace):
+                continue
+
+            required_args: list[str] = re.findall(r"{(.*?)}", line)
 
             for key, val in prompt_args.items():
                 if f"{{{key}}}" in line:
@@ -55,8 +57,12 @@ def fill(template: list[str], prompt_args: dict[str, str]) -> list[str]:
                 line = line.replace(f"{{{key}}}", val)
             # Process leftovers to {{ -> { and }} -> }.
             line = re.sub(r"{{(.*?)}}", r"{\1}", line)
+
             # Check that nothing that looks like {...} is left in the line.
             remaining_args: list[str] = re.findall(r"{(.*?)}", line)
+            # Do not count anything that was newly introduced by replacement.
+            remaining_args = [arg for arg in remaining_args if arg in required_args]
+
             if remaining_args:
                 raise LeftoverArgs(
                     f"Args still remain after replacement: {remaining_args=}, {line=}."

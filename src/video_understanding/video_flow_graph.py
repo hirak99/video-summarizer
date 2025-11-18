@@ -84,7 +84,7 @@ class VideoFlowGraph:
                 "checksum": self._checksum_node,
                 "out_file_stem": self._out_stem_const,
             },
-            invalidate_before=1751002018,
+            version=2,
         )
         transcription_refine_node = graph.add_node(
             14,
@@ -104,7 +104,7 @@ class VideoFlowGraph:
                 "diarization_file": diarize_node,
                 "out_file_stem": self._out_stem_const,
             },
-            invalidate_before=1748629535,
+            version=3,
         )
         role_identify_node = graph.add_node(
             8,
@@ -115,6 +115,7 @@ class VideoFlowGraph:
                 "out_file_stem": self._out_stem_const,
             },
             version=4,
+            force=True,
         )
         visualize_node = graph.add_node(
             5,
@@ -136,6 +137,7 @@ class VideoFlowGraph:
                 "identified_roles": role_identify_node,
                 "out_file_stem": self._out_stem_const,
             },
+            version=2,
         )
         self._vision_process_node = graph.add_node(
             13,
