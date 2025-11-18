@@ -1,8 +1,12 @@
+import dataclasses
 import functools
 import logging
 import os
+import re
 
 import regex
+
+from .. import video_config
 
 _FILE_REGEX_TO_TASK = {
     "EKG": "pediatric EKG training",
@@ -39,6 +43,34 @@ _FILE_SORT_ORDER = [
     "hearing",
     "color vision",
 ]
+
+
+@dataclasses.dataclass
+class FileNameComponents:
+    date: str
+    student: str
+    teacher: str
+    session: str
+
+    @classmethod
+    def from_pathname(cls, pathname: str) -> "FileNameComponents | None":
+        file_re = r"(?P<date>\d{4}-\d{2}-\d{2})_(?P<session>.+)_(?P<uid1>[ESP][0-9]+?)-(?P<uid2>[ESP][0-9]+?)\.(?P<ext>[a-zA-Z0-9]+)"
+        match = re.fullmatch(file_re, os.path.basename(pathname))
+        relative_name = os.path.relpath(pathname, video_config.VIDEOS_DIR)  # For messages.
+        if not match:
+            logging.warning(f"Invalid file name: {relative_name}")
+            return None
+        parent_basename = os.path.basename(os.path.dirname(pathname))
+        if parent_basename != match.group("uid2"):
+            logging.warning(f"Parent dir doesn't match student name: {relative_name}")
+            return None
+
+        return cls(
+            date=match.group("date"),
+            student=match.group("uid2"),
+            teacher=match.group("uid1"),
+            session=match.group("session"),
+        )
 
 
 def filename_to_task(file_path: str) -> str:
