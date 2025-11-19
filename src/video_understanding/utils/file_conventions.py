@@ -41,6 +41,52 @@ _FILE_SORT_ORDER = [
 ]
 
 
+# TODO: Convert to a class for initial sanity check. Also unit-test this.
+# Matches in order of the list.
+# If first one does not match, raises error alerting where it failed.
+def _staggered_fullmatch(
+    patterns: list[tuple[str, str]], candidate: str
+) -> re.Match[str]:
+    index: int | None = None
+    for index in range(len(patterns)):
+        pattern, _ = patterns[index]
+        if index > 0:
+            pattern += ".*"
+        match = re.fullmatch(pattern, candidate)
+        if match:
+            if index == 0:
+                return match
+            break
+    else:
+        # Nothing was parsed. Set i = n + 1. (Otherwise if loop exits, it is n.)
+        index = len(patterns)
+
+    assert isinstance(index, int), "Loop index will populate if len(patterns) > 0."
+    assert index > 0, "Does not return only if index != 0."
+    # The message of the one which failed, i.e. the one before it worked.
+    message = patterns[index - 1][1]
+    raise ValueError(message)
+
+
+# The _staggered match goes thru this list to show a better error based on what could not be matched.
+_FILE_RE_STAGGERED = [
+    (
+        r"(?P<date>\d{4}-\d{2}-\d{2})_(?P<session>.+)_(?P<uid1>[ESPG][0-9]+?)-(?P<uid2>[ESPG][0-9]+?)\.(?P<ext>[a-zA-Z0-9]+)",
+        "file extension",
+    ),
+    (
+        r"(?P<date>\d{4}-\d{2}-\d{2})_(?P<session>.+)_(?P<uid1>[ESPG][0-9]+?)-(?P<uid2>[ESPG][0-9]+?)\.",
+        "second id (student id)",
+    ),
+    (
+        r"(?P<date>\d{4}-\d{2}-\d{2})_(?P<session>.+)_(?P<uid1>[ESPG][0-9]+?)-",
+        "first id (teacher's id)",
+    ),
+    (r"(?P<date>\d{4}-\d{2}-\d{2})_(?P<session>.+)_", "session name"),
+    (r"(?P<date>\d{4}-\d{2}-\d{2})_", "date as YYYY-MM-DD"),
+]
+
+
 @dataclasses.dataclass
 class FileNameComponents:
     date: str
@@ -50,15 +96,15 @@ class FileNameComponents:
 
     @classmethod
     def from_pathname(cls, pathname: str) -> "FileNameComponents":
-        file_re = r"(?P<date>\d{4}-\d{2}-\d{2})_(?P<session>.+)_(?P<uid1>[ESPG][0-9]+?)-(?P<uid2>[ESPG][0-9]+?)\.(?P<ext>[a-zA-Z0-9]+)"
-        match = re.fullmatch(file_re, os.path.basename(pathname))
-
-        if not match:
-            raise ValueError(f"Invalid file name.")
+        try:
+            match = _staggered_fullmatch(_FILE_RE_STAGGERED, os.path.basename(pathname))
+        except ValueError as e:
+            # Make the error nicer for alerts.
+            raise ValueError(f"Couldn't match {e}.")
 
         parent_basename = os.path.basename(os.path.dirname(pathname))
         if parent_basename != match.group("uid2"):
-            raise ValueError(f"Parent dir doesn't match student name.")
+            raise ValueError(f"Parent dir doesn't match student name")
 
         return cls(
             date=match.group("date"),
