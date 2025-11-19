@@ -20,6 +20,7 @@ def all_video_files(
     regex: str | None = None,
     students_list: list[str] | None = None,
     teachers_list: list[str] | None = None,
+    bad_files_errs: list[str] | None = None,
 ) -> list[str]:
     """Returns a list of all video files in the VIDEOS_DIR.
 
@@ -59,6 +60,8 @@ def all_video_files(
             except ValueError as e:
                 rel_path = os.path.relpath(file_path, video_config.VIDEOS_DIR)
                 logging.warning(f"Error parsing filename {rel_path}: {e}")
+                if bad_files_errs is not None:
+                    bad_files_errs.append(rel_path)
                 continue
 
             if regex and not re.search(regex, filename):
