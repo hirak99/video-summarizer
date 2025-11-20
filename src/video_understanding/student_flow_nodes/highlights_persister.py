@@ -173,7 +173,7 @@ class EvalsPersister(process_node.ProcessNode):
         with open(out_fname, "w") as f:
             json.dump(
                 {
-                    "segments": eval_segments.model_dump_json(),
+                    "segments": eval_segments.model_dump(),
                     "fingerprint": fingerprint,
                 },
                 f,

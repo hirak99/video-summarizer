@@ -186,7 +186,7 @@ class HighlightCurator(process_node.ProcessNode):
 
         with open(evals_out) as f:
             data = json.load(f)
-            eval_segments = highlights_persister.HighlightsListT.model_validate_json(
+            eval_segments = highlights_persister.HighlightsListT.model_validate(
                 data["segments"]
             )
             evals_fingerprint: str = data["fingerprint"]
