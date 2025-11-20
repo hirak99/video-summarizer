@@ -6,7 +6,6 @@ import os
 
 from . import video_config
 from ..flow import process_graph
-from .student_flow_nodes import eval_template_maker
 from .student_flow_nodes import highlights_persister
 from .student_flow_nodes import hiring_highlight_curator as hhc
 from .student_flow_nodes import hiring_movie_compiler
@@ -81,16 +80,6 @@ def _main(
         },
         version=4,
     )
-    eval_template_node = graph.add_node(
-        2,
-        eval_template_maker.EvalTemplateMaker,
-        {
-            "highlights_log_file": highlight_curate_node,
-            "out_dir": str(_OUTDIR),
-        },
-        version=2,
-    )
-    del eval_template_node  # Unused. Should drop this.
     movie_compile_node = graph.add_node(
         3,
         hiring_movie_compiler.HiringMovieCompiler,
