@@ -100,7 +100,6 @@ class OcrDetector(process_node.ProcessNode):
     def process(
         self,
         source_file: str,
-        checksum: dict[str, str],  # Only for graph dependency.
         out_file_stem: str,
     ) -> str:
         movie = moviepy.VideoFileClip(source_file)

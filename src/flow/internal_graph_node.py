@@ -84,9 +84,10 @@ class AddedNode:
     update_deps: UpdateDeps = UpdateDeps.ALWAYS
 
     # Note:
-    # [normal] = not run_always + dependencies always
-    # passive = run_always + dependencies never, e.g. file names
-    # volatile = run_always + dependencies on value change, e.g. checksum nodes
+    # [normal] = not run_always + dependencies always.
+    # passive = run_always + dependencies never, e.g. file names.
+    # volatile = run_always + dependencies on value change, e.g. checksum nodes.
+    #  - For checksums, also consider instead, adding it to persistent file name.
     def set_passive(self):
         self.run_always = True
         self.update_deps = UpdateDeps.NEVER

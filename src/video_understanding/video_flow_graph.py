@@ -1,4 +1,5 @@
 import functools
+import hashlib
 import json
 import logging
 import os
@@ -9,7 +10,6 @@ from ..flow import internal_graph_node
 from ..flow import process_graph
 from .video_flow_nodes import caption_visualizer
 from .video_flow_nodes import custom_yolo_detector
-from .video_flow_nodes import file_checksummer
 from .video_flow_nodes import highlights_selector
 from .video_flow_nodes import ocr_detector
 from .video_flow_nodes import role_based_captioner
@@ -21,6 +21,14 @@ from .video_flow_nodes import video_flow_types
 from .video_flow_nodes import video_quality_profiler
 from .video_flow_nodes import vision_processor
 from .video_flow_nodes import voice_separator
+
+
+def _file_checksum(source_file: str) -> str:
+    hasher = hashlib.sha1()
+    with open(source_file, "rb") as f:
+        for byte_block in iter(lambda: f.read(4096), b""):
+            hasher.update(byte_block)
+    return hasher.hexdigest()
 
 
 class VideoFlowGraph:
@@ -37,20 +45,11 @@ class VideoFlowGraph:
         )
         self._out_stem_const = graph.add_constant_node(1, name="Out Stem", type=str)
 
-        self._checksum_node = graph.add_node(
-            21,
-            file_checksummer.FileChecksummer,
-            {"source_file": self._source_file_const},
-        )
-        # Recompute every time, but trigger deps only on value change.
-        self._checksum_node.set_volatile()
-
         video_quality_profile_node = graph.add_node(
             17,
             video_quality_profiler.VideoQualityProfiler,
             {
                 "source_file": self._source_file_const,
-                "checksum": self._checksum_node,
                 "out_file_stem": self._out_stem_const,
             },
             version=2,
@@ -60,7 +59,6 @@ class VideoFlowGraph:
             custom_yolo_detector.CustomYoloDetector,
             {
                 "source_file": self._source_file_const,
-                "checksum": self._checksum_node,
                 "out_file_stem": self._out_stem_const,
             },
             version=0,
@@ -71,7 +69,6 @@ class VideoFlowGraph:
             transcriber.WhisperTranscribe,
             {
                 "source_file": self._source_file_const,
-                "checksum": self._checksum_node,
                 "out_file_stem": self._out_stem_const,
             },
             invalidate_before=1753438637,
@@ -81,7 +78,6 @@ class VideoFlowGraph:
             voice_separator.VoiceSeparator,
             {
                 "source_file": self._source_file_const,
-                "checksum": self._checksum_node,
                 "out_file_stem": self._out_stem_const,
             },
             version=2,
@@ -215,7 +211,6 @@ class VideoFlowGraph:
             ocr_detector.OcrDetector,
             {
                 "source_file": self._source_file_const,
-                "checksum": self._checksum_node,
                 "out_file_stem": self._out_stem_const,
             },
             version=2,
@@ -238,33 +233,16 @@ class VideoFlowGraph:
         ]
 
     def persist_graph_for(self, video_path: str):
-        # This looks like ".../WORKSPACE_DIR/path/to/video_root".
-        out_path = os.path.join(
-            video_config.WORKSPACE_DIR,
-            os.path.relpath(os.path.dirname(video_path), video_config.VIDEOS_DIR),
+        video_name_wo_ext = os.path.splitext(os.path.basename(video_path))[0]
+
+        # Store each version in its dir as checksum.
+        results_dir = os.path.join(
+            video_config.WORKSPACE_DIR, video_name_wo_ext, _file_checksum(video_path)
         )
 
-        # This looks like "sample_movie.mkv".
-        video_basename = os.path.basename(video_path)
-
-        # Use a directory per video.
-        results_dir = os.path.join(out_path, video_basename)
         os.makedirs(results_dir, exist_ok=True)
 
         persist_path = os.path.join(results_dir, "graph_state.json")
-
-        # Persist path old is there for historical reasons. Ideally we should put it inside results dir.
-        # This looks like ".../WORKSPACE_DIR/path/to/video_root/video_name[no-ext]".
-        persist_path_old = (
-            os.path.join(out_path, os.path.splitext(video_basename)[0])
-            + ".process_graph_state.json"
-        )
-        # So if the old file exists, move it. We don't want two sources of truth, so we do not leave the old file.
-        if os.path.exists(persist_path_old):
-            if os.path.exists(persist_path):
-                raise ValueError("Both old and new persist-paths exist")
-            logging.info("Moving old graph state to new path")
-            os.rename(persist_path_old, persist_path)
 
         self.graph.persist(persist_path)
 

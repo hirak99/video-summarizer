@@ -38,7 +38,7 @@ VERSION = "7.9"
 
 _HOME = pathlib.Path(os.environ["HOME"])
 VIDEOS_DIR = _HOME / "data/videos"
-WORKSPACE_DIR = _HOME / "data/workspace"
+WORKSPACE_DIR = _HOME / "data/video_flow_states_v2"
 
 RESULTS_DIR = _HOME / "data/results"
 VIDEO_SUMMARIES_DIR = RESULTS_DIR / "video_summaries"

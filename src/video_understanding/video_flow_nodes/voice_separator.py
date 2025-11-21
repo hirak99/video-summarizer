@@ -67,7 +67,6 @@ class VoiceSeparator(process_node.ProcessNode):
         self,
         source_file: str,
         out_file_stem: str,
-        checksum: dict[str, str],  # Only for graph dependency.
     ) -> str:
         out_file = out_file_stem + ".diarized.json"
         logging.info(f"Diatrizing to {out_file}")
