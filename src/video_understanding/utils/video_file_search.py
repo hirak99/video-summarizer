@@ -57,11 +57,11 @@ def all_video_files(
                 components = file_conventions.FileNameComponents.from_pathname(
                     os.path.join(root, filename)
                 )
-            except ValueError as e:
+            except file_conventions.BadFilePattern as e:
                 rel_path = os.path.relpath(file_path, video_config.VIDEOS_DIR)
                 logging.warning(f"Error parsing filename {rel_path}: {e}")
                 if bad_files_errs is not None:
-                    bad_files_errs.append(f'*"{rel_path}"*: _{e}_')
+                    bad_files_errs.append(f'*`"{rel_path}"`*: _{e}_')
                 continue
 
             if regex and not re.search(regex, filename):

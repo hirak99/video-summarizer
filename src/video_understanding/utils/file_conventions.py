@@ -76,15 +76,19 @@ _FILE_RE_STAGGERED = [
     ),
     (
         r"(?P<date>\d{4}-\d{2}-\d{2})_(?P<session>.+)_(?P<uid1>[ESPG][0-9]+?)-(?P<uid2>[ESPG][0-9]+?)\.",
-        "second id (student id)",
+        "second id `(student id).`",
     ),
     (
         r"(?P<date>\d{4}-\d{2}-\d{2})_(?P<session>.+)_(?P<uid1>[ESPG][0-9]+?)-",
-        "first id (teacher's id)",
+        "first id `(teacher's id)-`",
     ),
-    (r"(?P<date>\d{4}-\d{2}-\d{2})_(?P<session>.+)_", "session name"),
-    (r"(?P<date>\d{4}-\d{2}-\d{2})_", "date as YYYY-MM-DD"),
+    (r"(?P<date>\d{4}-\d{2}-\d{2})_(?P<session>.+)_", "`session name_`"),
+    (r"(?P<date>\d{4}-\d{2}-\d{2})_", "date as `YYYY-MM-DD_`"),
 ]
+
+
+class BadFilePattern(ValueError):
+    pass
 
 
 @dataclasses.dataclass
@@ -100,11 +104,11 @@ class FileNameComponents:
             match = _staggered_fullmatch(_FILE_RE_STAGGERED, os.path.basename(pathname))
         except ValueError as e:
             # Make the error nicer for alerts.
-            raise ValueError(f"Couldn't match {e}.")
+            raise BadFilePattern(f"Couldn't match {e}.")
 
         parent_basename = os.path.basename(os.path.dirname(pathname))
         if parent_basename != match.group("uid2"):
-            raise ValueError(f"Parent dir doesn't match student name")
+            raise BadFilePattern(f"Parent dir doesn't match student name")
 
         return cls(
             date=match.group("date"),
