@@ -218,7 +218,7 @@ class VideoFlowGraph:
                 "checksum": self._checksum_node,
                 "out_file_stem": self._out_stem_const,
             },
-            invalidate_before=1749315690,
+            version=2,
         )
 
         # Final target node(s) for all files.

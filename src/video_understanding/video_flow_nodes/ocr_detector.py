@@ -17,9 +17,9 @@ from typing import override, TypedDict
 _EASYOCR = True
 
 # How long to skip ahead if detected. We can afford to skip more, since we can still blur if the number goes off and comes back.
-_DETECTED_SCAN_INTERVAL = 10.0
+_DETECTED_SCAN_INTERVAL = 1.0
 # How long to skip ahead if undetected.
-_UNDETECTED_SCAN_INTERVAL = 5.0
+_UNDETECTED_SCAN_INTERVAL = 0.5
 # Note that we will blur around the detected interval a bit, which should nicely cover things up.
 _REFINE_INTERVAL = 1 / 30.0
 
