@@ -12,9 +12,9 @@ from .. import video_config
 
 from typing import TypedDict
 
-# If True, will blur outside the student and teacher windows whenever they are found.
+# If True, will black out outside the student / teacher windows whenever labeled.
 # The "Blur.*" annotations will still be blurred.
-_WINDOW_BASED_BLUR = False
+_WINDOW_BASED_BLUR = True
 
 # For now, we only use the labels done by the user "hermes".
 # Later on we can add support for replication etc.

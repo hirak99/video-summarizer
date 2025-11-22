@@ -1,4 +1,5 @@
 from concurrent import futures
+import cv2
 import dataclasses
 import functools
 import hashlib
@@ -234,6 +235,16 @@ class MovieCompiler:
         if frame_processor is not None:
             frame = frame_processor(frame, start + t)
 
+        # Resize if the frame is not of the right size.
+        required_size = options.resize_to
+        if frame.shape[:2] != required_size:
+            # Resize the frame. CUBIC takes slightly longer but is better for up-sizing
+            # which is what we will typically do.
+            frame = np.array(
+                cv2.resize(frame, required_size, interpolation=cv2.INTER_CUBIC),
+                dtype=np.uint8,
+            )
+
         image = Image.fromarray(frame).convert("RGBA")
         draw = ImageDraw.Draw(image)
 
@@ -398,13 +409,6 @@ class MovieCompiler:
 
         duration = end - start
         clip = source_movie.subclipped(start, end)
-
-        required_size = self._movie_options.resize_to
-        if clip.size != required_size:
-            logging.info(
-                f"Resizing from {clip.size} to {required_size}: {source_movie_file}"
-            )
-            clip = clip.resized(new_size=required_size)
 
         clip = clip.transform(
             functools.partial(

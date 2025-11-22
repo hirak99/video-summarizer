@@ -136,7 +136,6 @@ class HiringMovieCompiler(process_node.ProcessNode):
                 blur_json_file=ocr_file,
                 frame_processor=annotation_blur.process_frame,
             )
-            break
             if video_config.TESTING_MODE:
                 break
 
