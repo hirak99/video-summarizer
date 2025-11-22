@@ -39,9 +39,8 @@ _RESOLUTION_S = 5.0
 # How many seconds of caption to use.
 _CAPTION_SECS = 30.0
 
-# Probability of logging images for VLM calls.
-# The text is always logged.
-_IMAGE_LOG_PROBABILITY = 1.0
+# Probability of logging VLM calls.
+_LOG_PROBABILITY = 0.05
 
 
 class SceneDescriptionT(pydantic.BaseModel):
@@ -267,17 +266,19 @@ class _VisionProcessor:
 
         call_count = len(self._scene_descriptions.chronology)
 
-        log_stem = os.path.join(log_dir, f"call_#{call_count:05d}")
+        if random.random() < _LOG_PROBABILITY:
+            log_stem = os.path.join(log_dir, f"call_#{call_count:05d}")
 
-        if random.random() < _IMAGE_LOG_PROBABILITY:
             # Save the image into logs.
             with open(log_stem + ".png", "wb") as file:
                 student_image.save(file)
             logging.info(f"Saved image to {log_stem}.png")
 
-        # To be saved by the LLM call.
-        log_file = log_stem + ".txt"
-        logging.info("Logging to " + log_file)
+            # To be saved by the LLM call.
+            log_file = log_stem + ".txt"
+            logging.info("Logging to " + log_file)
+        else:
+            log_file = None
 
         def validate_as_list(result: Any) -> SceneDescriptionT | None:
             result["time"] = t
