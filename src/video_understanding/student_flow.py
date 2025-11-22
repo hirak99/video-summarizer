@@ -84,6 +84,7 @@ def _main(
         3,
         hiring_movie_compiler.HiringMovieCompiler,
         {
+            "program": program,
             "movie_type": movie_type,
             "highlights_log_file": highlight_curate_node,
         },

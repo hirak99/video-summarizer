@@ -21,12 +21,16 @@ class HiringMovieCompiler(process_node.ProcessNode):
 
     @override
     def process(
-        self, movie_type: video_flow_types.CompilationType, highlights_log_file: str
+        self,
+        program: video_flow_types.ProgramType,
+        movie_type: video_flow_types.CompilationType,
+        highlights_log_file: str,
     ) -> str:
         with open(highlights_log_file, "r") as file:
             highlights_log = hhc.HighlightsLog.model_validate_json(file.read())
 
         self._compile_movie(
+            program=program,
             movie_type=movie_type,
             highlights=highlights_log.highlights,
             out_file=highlights_log.compiled_movie,
@@ -36,13 +40,14 @@ class HiringMovieCompiler(process_node.ProcessNode):
 
     def _compile_movie(
         self,
+        program: video_flow_types.ProgramType,
         movie_type: video_flow_types.CompilationType,
         highlights: list[highlights_persister.HighlightData],
         out_file: str,
     ) -> None:
         """Compile the chosen highlights into a movie."""
         compiler = movie_compiler.MovieCompiler(
-            compile_options.get_movie_options(movie_type)
+            compile_options.get_movie_options(program, movie_type)
         )
 
         for index, segment in enumerate(highlights):
@@ -131,6 +136,7 @@ class HiringMovieCompiler(process_node.ProcessNode):
                 blur_json_file=ocr_file,
                 frame_processor=annotation_blur.process_frame,
             )
+            break
             if video_config.TESTING_MODE:
                 break
 

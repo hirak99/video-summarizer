@@ -6,8 +6,7 @@ import json
 import logging
 import os
 
-# TODO: Remove the type: ignore once stubs for moviepy are updated in upstream.
-import moviepy  # type: ignore
+import moviepy
 from numpy import typing as npt
 import numpy as np
 from PIL import Image
@@ -41,8 +40,13 @@ class MovieOptions:
     resize_to: tuple[int, int]
     # Caption positioning options.
     caption: CaptionOptions
+
+    # Coords for the title.
+    text_title_pos: tuple[float, float]
+    # Coords for the description.
+    text_desc_pos: tuple[float, float]
     # Title text and bar color.
-    text_color: tuple[int, int, int] = (255, 165, 0)
+    text_color: tuple[int, int, int]
 
     # Background color for the timer bar for clips.
     @property
@@ -436,7 +440,7 @@ class MovieCompiler:
         txt_desc = fadein.apply(txt_desc)
         txt_desc = fadeout.apply(txt_desc)
 
-        txt_movie_name = moviepy.TextClip(
+        txt_title = moviepy.TextClip(
             text=title,
             # font="/usr/share/fonts/truetype/msttcorefonts/Arial.ttf",
             font_size=36,
@@ -444,18 +448,18 @@ class MovieCompiler:
             margin=(5, 5, 0, 10),
             bg_color=self._movie_options.caption.background_color,
         )
-        txt_movie_name = txt_movie_name.with_duration(clip.duration)
+        txt_title = txt_title.with_duration(clip.duration)
         if title_fade_in:
-            txt_movie_name = fadein.apply(txt_movie_name)
+            txt_title = fadein.apply(txt_title)
         if title_fade_out:
-            txt_movie_name = fadeout.apply(txt_movie_name)
+            txt_title = fadeout.apply(txt_title)
 
         # Overlay the text on the video
         composite = moviepy.CompositeVideoClip(
             [
                 clip,
-                txt_movie_name.with_position((50, 50)),
-                txt_desc.with_position((50, 100)),
+                txt_title.with_position(self._movie_options.text_title_pos),
+                txt_desc.with_position(self._movie_options.text_desc_pos),
             ]
         )
 
