@@ -23,6 +23,7 @@ _SESSION_RE_CONTENT_TO_TASK = {
 # Files need to be sorted in the order of whichever word is found in the file
 # name from the list below.
 _FILE_SORT_ORDER = [
+    # For MPA -
     "hygiene",
     "ppe",
     "temperature",
@@ -38,6 +39,16 @@ _FILE_SORT_ORDER = [
     "ekg",
     "hearing",
     "color vision",
+    # For FTP -
+    "hygiene",
+    "diaper",
+    "swaddling",
+    "bath",
+    "feeding",
+    "temperature",
+    "call",
+    "bulb syringe",
+    "car",
 ]
 
 
