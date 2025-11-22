@@ -211,7 +211,7 @@ class HighlightCurator(process_node.ProcessNode):
         time_str = datetime.datetime.now().strftime("%Y%m%d%H%M")
         if student and teacher:
             raise ValueError(f"Both {student=} and {teacher=} are present.")
-        out_file_basename = f"{program.value}_{student or teacher}_{movie_type.value}_v{video_config.VERSION}_{evals_fingerprint}_{time_str}"
+        out_file_basename = f"{program.value}_{student or teacher}_{movie_type.value}_{evals_fingerprint}_{time_str}"
 
         os.makedirs(out_dir, exist_ok=True)
         movie_name = os.path.join(out_dir, f"{out_file_basename}.mp4")
