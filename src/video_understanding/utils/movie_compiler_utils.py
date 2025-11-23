@@ -32,7 +32,7 @@ def audio_speed(clip: moviepy.AudioClip, speed: float) -> moviepy.AudioClip:
             f"atempo={speed}",
             os.path.join(tempdir, "speedup.wav"),
         ]
-        subprocess.run(cmd, check=True)
+        subprocess.run(cmd, check=True, stdin=subprocess.DEVNULL)
         return moviepy.AudioFileClip(os.path.join(tempdir, "speedup.wav"))
 
 
@@ -64,7 +64,12 @@ def concatenate_movies(movie_paths: list[str], output_path: str) -> None:
             "copy",
             output_path,
         ]
-        subprocess.run(cmd, check=True)
+        # Sometimes ffmpeg stops, with a message like this -
+        #   ...
+        #   Enter command: <target>|all <time>|-1 <command>[ <argument>]
+        # Disabling the stdin is expected to resolve it.
+        # Ref. https://unix.stackexchange.com/questions/36310/strange-errors-when-using-ffmpeg-in-a-loop
+        subprocess.run(cmd, check=True, stdin=subprocess.DEVNULL)
         print(f"Concatenation complete. Output saved to: {output_path}")
     except subprocess.CalledProcessError as e:
         print(f"Error during ffmpeg execution: {e}")
