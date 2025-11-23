@@ -1,5 +1,4 @@
 from concurrent import futures
-import cv2
 import dataclasses
 import functools
 import hashlib
@@ -7,6 +6,7 @@ import json
 import logging
 import os
 
+import cv2
 import moviepy
 from numpy import typing as npt
 import numpy as np
