@@ -158,6 +158,22 @@ TEACHER_HIRING_PROMPT_TEMPLATE: list[str] = [
     "]",
 ]
 
+# Prompt to summarize the session.
+SESSION_SUMMARIZE_PROMPT_TEMPLATE = [
+    "Following transcript is from session named '{task_description}':",
+    "",
+    "{caption_lines}",
+    "",
+    "---",
+    "For this '{task_description}' session, please create a summary of the session.",
+    "- Main header `#` should be brief title of the session gleamed from the transcript.",
+    "- Secondary headers `##` should be subtopics covered.",
+    "  - No need to number the subtopics.",
+    "  - Capture important details (if any) within each subtopic for later reference.",
+    "",
+    "Do not output anything other than the summary. No intro such as 'here is the summary' or 'okay' is needed.",
+    "Just print the summary in markdown.",
+]
 
 # First Time Parent sessions.
 FTP_PROMPT_VERSION = 1  # Increase if you change the prompt.

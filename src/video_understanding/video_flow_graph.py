@@ -14,6 +14,7 @@ from .video_flow_nodes import highlights_selector
 from .video_flow_nodes import ocr_detector
 from .video_flow_nodes import role_based_captioner
 from .video_flow_nodes import role_identifier
+from .video_flow_nodes import session_summarizer
 from .video_flow_nodes import speaker_assigner
 from .video_flow_nodes import transcriber
 from .video_flow_nodes import transcription_refiner
@@ -38,7 +39,7 @@ class VideoFlowGraph:
         graph = process_graph.ProcessGraph(dry_run=dry_run)
 
         # Don't re-use purged node ids.
-        # Next Id: 22
+        # Next Id: 23
         # Id(s) deprecated: 3, 11, 16.
         self._source_file_const = graph.add_constant_node(
             0, name="Source Video", type=str
@@ -147,6 +148,18 @@ class VideoFlowGraph:
         if not video_config.ENABLE_VISION:
             self._vision_process_node = None
 
+        self._session_summary_node = graph.add_node(
+            22,
+            session_summarizer.SessionSummarizer,
+            {
+                "source_file": self._source_file_const,
+                "role_aware_summary_file": self.role_based_caption_node,
+                "scene_understanding_file": self._vision_process_node,
+                "bad_video_segments_file": video_quality_profile_node,
+                "out_file_stem": self._out_stem_const,
+            },
+        )
+
         # Increase this if the HighlightsSelector logic changes.
         highlights_logic_ver = 0
         self.highlights_student_hiring = graph.add_node(
@@ -215,9 +228,11 @@ class VideoFlowGraph:
             version=2,
         )
 
-        # Final target node(s) for all files.
+        # Common nodes for all programs.
+        # Program-specific nodes are added while running it.
         final_nodes: list[internal_graph_node.AddedNode] = [
             self.ocr_detect_node,
+            self._session_summary_node,
         ]
         if makeviz:
             final_nodes.append(visualize_node)

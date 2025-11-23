@@ -40,3 +40,14 @@ def parse_as_json(response: Any) -> Any:
     except json.JSONDecodeError as e:
         logging.warning(f"Failed to parse response as JSON: {e}")
         raise abstract_llm.RetriableException() from e
+
+
+def parse_as_markdown(response: str) -> str:
+    md_header = "```markdown\n"
+    if response.startswith(md_header):
+        response = response[len(md_header) :]
+        if not response.endswith("```"):
+            logging.info("Starts with markdown header, but does not end with ```")
+            raise abstract_llm.RetriableException()
+        response = response[:-3]
+    return response
