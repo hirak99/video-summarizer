@@ -26,8 +26,10 @@ def _main(
     if limit_files:
         all_files_to_process = all_files_to_process[:limit_files]
 
-    video_graph = video_flow_graph.VideoFlowGraph(makeviz=makeviz, dry_run=dry_run)
-    video_graph.run(program=program, all_files_to_process=all_files_to_process)
+    video_graph = video_flow_graph.VideoFlowGraph(
+        program=program, makeviz=makeviz, dry_run=dry_run
+    )
+    video_graph.run(all_files_to_process=all_files_to_process)
 
 
 if __name__ == "__main__":

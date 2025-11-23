@@ -6,6 +6,7 @@ from ..llm_service import llm
 from ..llm_service import llm_utils
 from ..utils import prompt_utils
 from ..utils import templater
+from ..video_flow_nodes import video_flow_types
 
 from typing import override
 
@@ -17,7 +18,9 @@ class DigestVqa(abstract_vqa.AbstractVqa):
         self._video_path = video_path
         self._maintain_context = maintain_context
 
-        graph = video_flow_graph.VideoFlowGraph(makeviz=False, dry_run=True)
+        graph = video_flow_graph.VideoFlowGraph(
+            program=video_flow_types.ProgramType.UNKNOWN, makeviz=False, dry_run=True
+        )
         graph.persist_graph_for(video_path)
 
         scene_understanding = graph.scene_understanding_result()

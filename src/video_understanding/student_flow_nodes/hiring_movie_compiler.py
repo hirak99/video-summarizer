@@ -118,7 +118,7 @@ class HiringMovieCompiler(process_node.ProcessNode):
                         fade_in_time = 0.0
 
             video_nodes = video_graph_node_getter.get_video_graph_nodes(
-                movie_type=movie_type, video_fname=segment.movie
+                program=program, movie_type=movie_type, video_fname=segment.movie
             )
             ocr_file = video_nodes.graph.ocr_detect_node.result
 

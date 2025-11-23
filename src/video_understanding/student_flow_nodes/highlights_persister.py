@@ -111,7 +111,7 @@ class EvalsPersister(process_node.ProcessNode):
             program=program, student=student, teacher=teacher
         ):
             video_nodes = video_graph_node_getter.get_video_graph_nodes(
-                movie_type=movie_type, video_fname=video_fname
+                program=program, movie_type=movie_type, video_fname=video_fname
             )
             highlights_node = video_nodes.current_highlights_node
             result_timestamp = misc_utils.ensure_not_none(
@@ -136,7 +136,7 @@ class EvalsPersister(process_node.ProcessNode):
             program=program, student=student, teacher=teacher
         ):
             video_nodes = video_graph_node_getter.get_video_graph_nodes(
-                movie_type=movie_type, video_fname=video_fname
+                program=program, movie_type=movie_type, video_fname=video_fname
             )
 
             captions_file = misc_utils.ensure_not_none(

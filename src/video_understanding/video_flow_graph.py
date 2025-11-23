@@ -33,9 +33,10 @@ def _file_checksum(source_file: str) -> str:
 
 
 class VideoFlowGraph:
-    def __init__(self, *, makeviz: bool, dry_run: bool):
+    def __init__(
+        self, *, program: video_flow_types.ProgramType, makeviz: bool, dry_run: bool
+    ):
         """Makes the graph but does not execute anything."""
-
         graph = process_graph.ProcessGraph(dry_run=dry_run)
 
         # Don't re-use purged node ids.
@@ -152,12 +153,13 @@ class VideoFlowGraph:
             22,
             session_summarizer.SessionSummarizer,
             {
+                "program": program.value,
                 "source_file": self._source_file_const,
                 "role_aware_summary_file": self.role_based_caption_node,
                 "scene_understanding_file": self._vision_process_node,
                 "bad_video_segments_file": video_quality_profile_node,
-                "out_file_stem": self._out_stem_const,
             },
+            version=2,
         )
 
         # Increase this if the HighlightsSelector logic changes.
@@ -236,6 +238,14 @@ class VideoFlowGraph:
         ]
         if makeviz:
             final_nodes.append(visualize_node)
+        match program:
+            case video_flow_types.ProgramType.FTP:
+                final_nodes.append(self.highlights_ftp)
+            case video_flow_types.ProgramType.PMA:
+                final_nodes.append(self.highlights_student_hiring)
+                final_nodes.append(self.highlights_student_resume)
+            case _:
+                raise ValueError(f"Unknown program: {program}")
 
         self.graph = graph
         self._final_nodes = final_nodes
@@ -267,9 +277,7 @@ class VideoFlowGraph:
         self._source_file_const.set_value(video_path)
         self._out_stem_const.set_value(out_stem)
 
-    def run(
-        self, *, program: video_flow_types.ProgramType, all_files_to_process: list[str]
-    ):
+    def run(self, *, all_files_to_process: list[str]):
 
         def prep_fn(file_no: int, video_path: str, count: int):
             logging.info(
@@ -278,19 +286,9 @@ class VideoFlowGraph:
             )
             self.persist_graph_for(video_path)
 
-        final_nodes = self._final_nodes
-        match program:
-            case video_flow_types.ProgramType.FTP:
-                final_nodes.append(self.highlights_ftp)
-            case video_flow_types.ProgramType.PMA:
-                final_nodes.append(self.highlights_student_hiring)
-                final_nodes.append(self.highlights_student_resume)
-            case _:
-                raise ValueError(f"Unknown program: {program}")
-
         self.graph.process_batch(
             batch_items=all_files_to_process,
-            run_nodes=final_nodes,
+            run_nodes=self._final_nodes,
             prep_fn=functools.partial(prep_fn, count=len(all_files_to_process)),
             post_fn=lambda file_no, path: video_config.repeated_warnings(),
             release_resources_after=self._release_resources_after,

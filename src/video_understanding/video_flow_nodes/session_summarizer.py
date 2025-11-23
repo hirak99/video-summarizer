@@ -1,4 +1,6 @@
 import json
+import logging
+import os
 
 from . import role_based_captioner
 from . import video_quality_profiler
@@ -49,12 +51,12 @@ class SessionSummarizer(process_node.ProcessNode):
     @override
     def process(
         self,
+        program: str,
         source_file: str,
         role_aware_summary_file: str,
         # Note: Remove `| None` if we roll out ENABLE_VISION as True. For that we need to ensure the presence of manual labels.
         scene_understanding_file: str | None,
         bad_video_segments_file: str,
-        out_file_stem: str,
     ) -> str:
         with open(role_aware_summary_file, "r") as f:
             role_aware_summary: list[role_based_captioner.RoleAwareCaptionT] = (
@@ -91,8 +93,22 @@ class SessionSummarizer(process_node.ProcessNode):
             max_tokens=4096,
         )
 
-        out_file_suffix = f".session_summary.md"
-        out_file_name = out_file_stem + out_file_suffix
+        # To make video summaries easier to find than other logs -
+        # - Place within a subdir by the program / student name.
+        # - Use same name as the source, but with suffix .md.
+        student = file_conventions.FileNameComponents.from_pathname(source_file).student
+        out_file_name = os.path.join(
+            video_config.WORKSPACE_DIR,
+            "_TextSummaries",
+            program,
+            student,
+            os.path.basename(source_file) + ".md",
+        )
+
+        os.makedirs(os.path.dirname(out_file_name), exist_ok=True)
+
         with open(out_file_name, "w") as f:
             f.write(response_str)
+        logging.info(f"Session summary written to {out_file_name}")
+
         return out_file_name

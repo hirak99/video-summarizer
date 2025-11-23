@@ -1,4 +1,4 @@
-import functools
+# import functools
 
 from .. import video_flow_graph
 from ...flow import internal_graph_node
@@ -7,10 +7,17 @@ from ..video_flow_nodes import video_flow_types
 
 class _VideoGraphNodes:
 
-    def __init__(self, movie_type: video_flow_types.CompilationType, video_fname: str):
+    def __init__(
+        self,
+        program: video_flow_types.ProgramType,
+        movie_type: video_flow_types.CompilationType,
+        video_fname: str,
+    ):
         self._movie_type = movie_type
 
-        self.graph = video_flow_graph.VideoFlowGraph(makeviz=False, dry_run=True)
+        self.graph = video_flow_graph.VideoFlowGraph(
+            program=program, makeviz=False, dry_run=True
+        )
         self.graph.persist_graph_for(video_fname)
 
     @property
@@ -31,8 +38,12 @@ class _VideoGraphNodes:
 
 
 # This is thread-safe. The maxsize (roughly) should be the number of threads needed.
-@functools.lru_cache(maxsize=10)
+# @functools.lru_cache(maxsize=10)
 def get_video_graph_nodes(
-    movie_type: video_flow_types.CompilationType, video_fname: str
+    program: video_flow_types.ProgramType,
+    movie_type: video_flow_types.CompilationType,
+    video_fname: str,
 ) -> _VideoGraphNodes:
-    return _VideoGraphNodes(movie_type=movie_type, video_fname=video_fname)
+    return _VideoGraphNodes(
+        program=program, movie_type=movie_type, video_fname=video_fname
+    )
