@@ -111,7 +111,6 @@ class VideoFlowGraph:
                 "out_file_stem": self._out_stem_const,
             },
             version=4,
-            force=True,
         )
         visualize_node = graph.add_node(
             5,
