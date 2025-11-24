@@ -176,7 +176,7 @@ SESSION_SUMMARIZE_PROMPT_TEMPLATE = [
 ]
 
 # First Time Parent sessions.
-FTP_PROMPT_VERSION = 1  # Increase if you change the prompt.
+FTP_PROMPT_VERSION = 2  # Increase if you change the prompt.
 FTP_PROMPT_TEMPLATE: list[str] = [
     "Following transcript is from session named '{task_description}':",
     "",
@@ -189,10 +189,11 @@ FTP_PROMPT_TEMPLATE: list[str] = [
     "- Find key moments where the student (i.e. parent) learned something useful.",
     "- Emphasize the moments where the student asks a question to the instructor and gets a clarification or answer.",
     "- Prioritize visual moments, where there are visual demonstrations and not just long speech.",
+    "- If the clip includes a response from the teacher, do not cut it off. Include complete teacher's response.",
     "- Ignore irrelevant or personal comments, such as those unrelated to the lesson or professional behavior.",
     "",
     "Then respond with timestamped instances showing weakness or strength.",
-    "- Clips should have 10-20 seconds per instance, with relevant context. Prioritize moments where the teacher's actions are pivotal.",
+    # "- Clips should have 10-20 seconds per instance, with relevant context. Prioritize moments where the teacher's actions are pivotal.",
     "- Specify importance on a scale of 1-10 for each instance.",
     "- If there are no relevant instances, output an empty array.",
     "- Double check the time intervals to ensure that the selected time range includes the entire exchange of the justification.",
