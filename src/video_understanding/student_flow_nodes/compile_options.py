@@ -20,9 +20,9 @@ _MOVIE_OPTIONS_BY_PROGRAM: dict[
     video_flow_types.ProgramType.FTP: movie_compiler.MovieOptions(
         resize_to=(1920, 1080),
         caption=movie_compiler.CaptionOptions(
-            position_prop=(0.5, 0.92),
-            caption_width_prop=0.8,
-            anchor="mm",
+            position_prop=(0.5, 0.99),
+            caption_width_prop=0.95,
+            anchor="md",
             align="center",
             background_color=(0, 0, 0, 192),
         ),
