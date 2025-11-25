@@ -141,7 +141,7 @@ class EvalsPersister(process_node.ProcessNode):
 
             captions_file = misc_utils.ensure_not_none(
                 video_nodes.graph.role_based_caption_node.result,
-                err="Role based captions not computed",
+                err=f"Role based captions not computed for {video_fname}",
             )
             if not isinstance(captions_file, str):
                 raise ValueError(
@@ -150,7 +150,7 @@ class EvalsPersister(process_node.ProcessNode):
 
             highlights_node_result = misc_utils.ensure_not_none(
                 video_nodes.current_highlights_node.result,
-                err="Highlights node not computed",
+                err=f"Highlights node not computed for {video_fname}",
             )
 
             with open(highlights_node_result, "r") as file:
