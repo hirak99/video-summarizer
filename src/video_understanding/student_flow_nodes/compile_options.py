@@ -13,8 +13,8 @@ _MOVIE_OPTIONS_BY_PROGRAM: dict[
             align="left",
             background_color=(0, 0, 0, 192),
         ),
-        text_title_pos=(50, 50),
-        text_desc_pos=(50, 100),
+        text_title_pos=(10, 5),
+        text_desc_pos=(10, 55),
         text_color=(255, 165, 0),
     ),
     video_flow_types.ProgramType.FTP: movie_compiler.MovieOptions(

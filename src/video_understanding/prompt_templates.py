@@ -176,7 +176,7 @@ SESSION_SUMMARIZE_PROMPT_TEMPLATE = [
 ]
 
 # First Time Parent sessions.
-FTP_PROMPT_VERSION = 3  # Increase if you change the prompt.
+FTP_PROMPT_VERSION = 4  # Increase if you change the prompt.
 FTP_PROMPT_TEMPLATE: list[str] = [
     "Following transcript is from session named '{task_description}':",
     "",
@@ -184,11 +184,13 @@ FTP_PROMPT_TEMPLATE: list[str] = [
     "",
     "---",
     "This is a '{task_description}' session, where first time parents are students, who learn caring about their baby from a registered nurse.",
-    "Please find important and interesting highlights from the session.",
+    "Please find important and interesting highlights from the session as reference for the student.",
     "Instructions:",
     "- Find key moments where the student (i.e. parent) learned something useful.",
     "- Emphasize the moments where the student asks a question to the instructor and gets a clarification or answer.",
     "- Prioritize visual moments, where there are visual demonstrations and not just long speech.",
+    "- If a clarifying question is asked by the student in the highlight, ALWAYS include the FULL response from the teacher.",
+    "- If a student describes or demonstrates how he will do something, please include FULL teacher's response to indicate if it is correct.",
     "- If the clip includes a student asking a question, INCLUDE THE FULL QUESTION, do not cut it short.",
     "- If the clip has a question from the student, MUST INCLUDE THE FULL RESPONSE FROM THE TEACHER. DO NOT CUT THE TEACHER'S RESPONSE SHORT.",
     "- Ignore irrelevant or personal comments, such as those unrelated to the lesson or professional behavior.",
