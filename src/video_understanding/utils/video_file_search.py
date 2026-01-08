@@ -11,6 +11,7 @@ from ..video_flow_nodes import video_flow_types
 _PROGRAM_DIRS: dict[video_flow_types.ProgramType, str] = {
     video_flow_types.ProgramType.PMA: "Medical Assistant Recordings",
     video_flow_types.ProgramType.FTP: "First Time Parent",
+    video_flow_types.ProgramType.MISC: "Misc Recordings",
 }
 
 

@@ -9,6 +9,8 @@ class ProgramType(enum.Enum):
     PMA = "PMA"
     # First Time Parent.
     FTP = "FTP"
+    # Miscellaneous.
+    MISC = "MISC"
 
 
 # Indicates what kind of highlights to capture from the video.
