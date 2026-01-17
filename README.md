@@ -1,5 +1,9 @@
 # Video Understanding
 
+> [!NOTE]
+> As of Jan 2026, active development of this project has moved back into a private integrated codebase for improved iteration speed and efficiency.
+> This public repository is retained as a stable reference and may receive occasional updates; but it is no longer the primary development target.
+
 ## Project Overview
 
 This repository hosts two closely related projects designed to build a scalable video-understanding and summarization pipeline.
